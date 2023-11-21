@@ -9,10 +9,71 @@ import javalang
 import jinja2
 from colorama import Fore, Style, init
 from task import Task
+from llama import Llama
+import os
+import pickle
 
 init()
 # Create a jinja2 environment
 env = jinja2.Environment(loader=jinja2.FileSystemLoader('../prompt'))
+
+
+def ask_our_LLM(messages, save_path):
+    
+    if get_messages_tokens(messages) > MAX_PROMPT_TOKENS: # to confirm token limit before call LLM
+        return False
+    
+    ckpt_dir = "/mnt/sting/sorn111930/cut/codellama/CodeLlama-34b-Instruct/"
+    tokenizer_path = "/mnt/sting/sorn111930/cut/codellama/CodeLlama-34b-Instruct/tokenizer.model"
+    max_seq_len = 512
+    max_batch_size = 4
+    max_gen_len = None
+    top_p = 0.95
+    temperature = 0.2
+    
+    if '34b' in ckpt_dir:
+        with open('temp.pkl', 'wb') as f:
+            pickle.dump(messages, f)
+        os.system("torchrun --nproc_per_node 4 llm.py")
+        
+    
+    else:
+    
+        generator = Llama.build(
+            ckpt_dir=ckpt_dir,
+            tokenizer_path=tokenizer_path,
+            max_seq_len=max_seq_len,
+            max_batch_size=max_batch_size,
+        )            
+            
+        # Retry 5 times when error occurs
+        max_try = 5
+        while max_try:
+            try: # change to our langauge model
+                
+                completion = generator.chat_completion(
+                            [messages],  # type: ignore
+                            max_gen_len=max_gen_len,
+                            temperature=temperature,
+                            top_p=top_p
+                )
+        
+                with open(save_path, "w") as f:
+                    json.dump(completion, f) # result is here in completion
+                    print(completion)
+                return True  
+                
+            except Exception as e:
+                print(Fore.RED + str(e), Style.RESET_ALL)
+                if "This model's maximum context length is 4097 tokens." in str(e):
+                    break
+                time.sleep(10)
+                # If rate limit reached we wait a random sleep time
+                if "Rate limit reached" in str(e):
+                    sleep_time = random.randint(60, 120)
+                    time.sleep(sleep_time)
+            max_try -= 1
+        return False
 
 
 def ask_chatgpt(messages, save_path):
@@ -30,7 +91,7 @@ def ask_chatgpt(messages, save_path):
     # Retry 5 times when error occurs
     max_try = 5
     while max_try:
-        try:
+        try: # change to our langauge model
             completion = openai.ChatCompletion.create(messages=messages,
                                                       model=model,
                                                       temperature=temperature,
@@ -38,8 +99,8 @@ def ask_chatgpt(messages, save_path):
                                                       frequency_penalty=frequency_penalty,
                                                       presence_penalty=presence_penalty)
             with open(save_path, "w") as f:
-                json.dump(completion, f)
-            return True
+                json.dump(completion, f) # result is here in completion
+            return True  
         except Exception as e:
             print(Fore.RED + str(e), Style.RESET_ALL)
             if "This model's maximum context length is 4097 tokens." in str(e):
@@ -386,6 +447,7 @@ def whole_process(test_num, base_name, base_dir, repair, submits, total):
         strings = strings.strip()
         return strings
 
+    # prompting part # our project must implement evoluation algorithm here
     try:
         while rounds < max_rounds:
             # 1. Ask GPT
@@ -471,11 +533,14 @@ def whole_process(test_num, base_name, base_dir, repair, submits, total):
                             break
                 # print(Fore.BLUE, messages[1]['content'], Style.RESET_ALL)
 
-            status = ask_chatgpt(messages, gpt_file_name)
+            # need to add LLM here instead of ask chatgpt
+            # status = ask_chatgpt(messages, gpt_file_name)
+            stutus = ask_our_LLM(messages, gpt_file_name)
             if not status:
                 print(progress, Fore.RED + 'OpenAI Fail processing messages', Style.RESET_ALL)
                 break
-
+            
+            # read response from gpt
             with open(gpt_file_name, "r") as f:
                 gpt_result = json.load(f)
 
@@ -533,9 +598,12 @@ def whole_process(test_num, base_name, base_dir, repair, submits, total):
                 break
     except Exception as e:
         print(progress, Fore.RED + str(e), Style.RESET_ALL)
+    
+    
     if os.path.exists(run_temp_dir):
         run_temp_dir = os.path.abspath(run_temp_dir)
         shutil.rmtree(run_temp_dir)
+    assert False
 
 
 def start_whole_process(source_dir, result_path, multiprocess=False, repair=True):

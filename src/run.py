@@ -25,6 +25,13 @@ def run():
     Generate the test cases with one-click.
     :return: None
     """
+    
+    import debugpy
+    debugpy.listen(5679)
+    print("wait for debugger")
+    debugpy.wait_for_client()
+    print("attach")
+    
     # Delete history data
     drop_table()
 
@@ -50,6 +57,7 @@ def run():
         SELECT id FROM method WHERE project_name='{}';
     """.format(project_name)
 
+    # assert False
     # Start the whole process
     start_generation(sql_query, multiprocess=False, repair=True, confirmed=False)
 
@@ -58,10 +66,10 @@ def run():
 
 
 if __name__ == '__main__':
-    print("Make sure the config.ini is correctly configured.")
-    seconds = 5
-    while seconds > 0:
-        print(seconds)
-        time.sleep(1)  # Pause for 1 second
-        seconds -= 1
+    # print("Make sure the config.ini is correctly configured.")
+    # seconds = 5
+    # while seconds > 0:
+    #     print(seconds)
+    #     time.sleep(1)  # Pause for 1 second
+    #     seconds -= 1
     run()

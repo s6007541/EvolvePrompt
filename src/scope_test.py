@@ -92,6 +92,12 @@ def start_generation(sql_query, multiprocess=True, repair=True, confirmed=False)
             print("Scope test cancelled.")
             return
 
+    # import debugpy
+    # debugpy.listen(5679)
+    # print("wait for debugger")
+    # debugpy.wait_for_client()
+    # print("attach")
+        
     # Create the new folder
     result_path = create_dataset_result_folder("")
 

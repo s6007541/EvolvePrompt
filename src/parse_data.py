@@ -8,7 +8,7 @@ Date: 2023-04-01
 
 import json
 import os
-from database import database
+from database import db
 
 
 def parse_data(dir_path: str):
@@ -17,7 +17,6 @@ def parse_data(dir_path: str):
     :param dir_path: the path of the .json files.
     :return: None
     """
-    db = database()
     for root, dirs, files in os.walk(dir_path):
         for filename in files:
             if filename.endswith('.json'):

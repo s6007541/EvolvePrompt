@@ -7,6 +7,7 @@ import psutil
 import re
 import tiktoken
 import datetime
+import subprocess
 
 enc = tiktoken.get_encoding("cl100k_base")
 encoding = tiktoken.encoding_for_model("gpt-3.5-turbo")
@@ -194,11 +195,14 @@ def get_openai_message(content):
 
 
 def check_java_version():
-    java_home = os.environ.get('JAVA_HOME')
-    if 'jdk-17' in java_home:
-        return 17
-    elif 'jdk-11' in java_home:
-        return 11
+    java_version_output = subprocess.check_output(['java', '-version'], stderr=subprocess.STDOUT, text=True)
+    match = re.search(r'"(\d+)\.(\d+).*"', java_version_output)
+    
+    if match:
+        major_version = int(match.group(1))
+        return major_version
+    else:
+        return None
 
 
 def repair_package(code, package_info):

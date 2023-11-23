@@ -2,7 +2,7 @@ import configparser
 
 # Use configparser.ConfigParser() to read config.ini file.
 config = configparser.ConfigParser()
-config.read("../config/config.ini") # change config.ini to change setting
+config.read("../.config/config.ini") # change config.ini to change setting
 
 process_number = eval(config.get("DEFAULT", "process_number"))
 test_number = eval(config.get("DEFAULT", "test_number"))
@@ -29,9 +29,18 @@ dataset_dir = config.get("DEFAULT", "dataset_dir")
 result_dir = config.get("DEFAULT", "result_dir")
 project_dir = config.get("DEFAULT", "project_dir")
 
-api_keys = eval(config.get("openai", "api_keys"))
-model = config.get("openai", "model")
-temperature = eval(config.get("openai", "temperature"))
-top_p = eval(config.get("openai", "top_p"))
-frequency_penalty = eval(config.get("openai", "frequency_penalty"))
-presence_penalty = eval(config.get("openai", "presence_penalty"))
+model_path = config.get("llm", "model_path")
+tokenizer_path = config.get("llm", "tokenizer_path")
+max_seq_len = eval(config.get("llm", "max_seq_len"))
+max_batch_size = eval(config.get("llm", "max_batch_size"))
+temperature = eval(config.get("llm", "temperature"))
+top_p = eval(config.get("llm", "top_p"))
+frequency_penalty = eval(config.get("llm", "frequency_penalty"))
+presence_penalty = eval(config.get("llm", "presence_penalty"))
+
+# api_keys = eval(config.get("openai", "api_keys"))
+# model = config.get("openai", "model")
+# temperature = eval(config.get("openai", "temperature"))
+# top_p = eval(config.get("openai", "top_p"))
+# frequency_penalty = eval(config.get("openai", "frequency_penalty"))
+# presence_penalty = eval(config.get("openai", "presence_penalty"))

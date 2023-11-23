@@ -8,11 +8,9 @@ Date: 2023-04-01
 
 import os
 import json
-from database import database
+from database import db
 
 dataset_path = "../dataset/"
-db = database()
-
 
 def gen_file_name(method_id, project_name, class_name, method_name, direction):
     if direction == "raw":

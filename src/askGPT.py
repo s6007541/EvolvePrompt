@@ -1,7 +1,6 @@
 import copy
 import os.path
 import time
-import openai
 from tools import *
 import random
 import concurrent.futures
@@ -11,96 +10,32 @@ from colorama import Fore, Style, init
 from task import Task
 from llama import Llama
 import os
-import pickle
 
 init()
 # Create a jinja2 environment
 env = jinja2.Environment(loader=jinja2.FileSystemLoader('../prompt'))
 
 
-def ask_llm(messages, save_path):
+def ask_llm(model, messages, save_path):
     
     if get_messages_tokens(messages) > MAX_PROMPT_TOKENS: # to confirm token limit before call LLM
         return False
-    
-    ckpt_dir = "" # path/to/CodeLlama-34b-Instruct/
-    tokenizer_path = "" # path/to/CodeLlama-34b-Instruct/tokenizer.model
-    max_seq_len = 512
-    max_batch_size = 4
-    max_gen_len = None
-    top_p = 0.95
-    temperature = 0.2
-    
-    if '34b' in ckpt_dir:
-        with open('temp.pkl', 'wb') as f:
-            pickle.dump(messages, f)
-        os.system("torchrun --nproc_per_node 4 llm.py")
-        
-    
-    else:
-    
-        generator = Llama.build(
-            ckpt_dir=ckpt_dir,
-            tokenizer_path=tokenizer_path,
-            max_seq_len=max_seq_len,
-            max_batch_size=max_batch_size,
-        )            
-            
-        # Retry 5 times when error occurs
-        max_try = 5
-        while max_try:
-            try: # change to our langauge model
-                
-                completion = generator.chat_completion(
-                            [messages],  # type: ignore
-                            max_gen_len=max_gen_len,
-                            temperature=temperature,
-                            top_p=top_p
-                )
-        
-                with open(save_path, "w") as f:
-                    json.dump(completion, f) # result is here in completion
-                    print(completion)
-                return True  
-                
-            except Exception as e:
-                print(Fore.RED + str(e), Style.RESET_ALL)
-                if "This model's maximum context length is 4097 tokens." in str(e):
-                    break
-                time.sleep(10)
-                # If rate limit reached we wait a random sleep time
-                if "Rate limit reached" in str(e):
-                    sleep_time = random.randint(60, 120)
-                    time.sleep(sleep_time)
-            max_try -= 1
-        return False
-
-
-def ask_chatgpt(messages, save_path):
-    """
-    Send messages to GPT, and save its response.
-    :param messages: The messages to send to OpenAI.
-    :param save_path: The path to save the result.
-    :return: [{"role":"user","content":"..."}]
-    """
-    # Send a request to OpenAI
-    # Max prompt token exceeded, no need to send request.
-    if get_messages_tokens(messages) > MAX_PROMPT_TOKENS:
-        return False
-    openai.api_key = random.choice(api_keys)
     # Retry 5 times when error occurs
     max_try = 5
     while max_try:
         try: # change to our langauge model
-            completion = openai.ChatCompletion.create(messages=messages,
-                                                      model=model,
-                                                      temperature=temperature,
-                                                      top_p=top_p,
-                                                      frequency_penalty=frequency_penalty,
-                                                      presence_penalty=presence_penalty)
+            
+            response = model.chat_completion(
+                        [messages],  # type: ignore
+                        max_gen_len=None,
+                        temperature=temperature,
+                        top_p=top_p
+            )
+    
             with open(save_path, "w") as f:
-                json.dump(completion, f) # result is here in completion
-            return True 
+                json.dump(response, f) # result is here in completion
+            return response  
+            
         except Exception as e:
             print(Fore.RED + str(e), Style.RESET_ALL)
             if "This model's maximum context length is 4097 tokens." in str(e):
@@ -111,7 +46,45 @@ def ask_chatgpt(messages, save_path):
                 sleep_time = random.randint(60, 120)
                 time.sleep(sleep_time)
         max_try -= 1
-    return False
+    return None
+
+
+# def ask_chatgpt(messages, save_path):
+#     """
+#     Send messages to GPT, and save its response.
+#     :param messages: The messages to send to OpenAI.
+#     :param save_path: The path to save the result.
+#     :return: [{"role":"user","content":"..."}]
+#     """
+#     # Send a request to OpenAI
+#     # Max prompt token exceeded, no need to send request.
+#     if get_messages_tokens(messages) > MAX_PROMPT_TOKENS:
+#         return False
+#     openai.api_key = random.choice(api_keys)
+#     # Retry 5 times when error occurs
+#     max_try = 5
+#     while max_try:
+#         try: # change to our langauge model
+#             completion = openai.ChatCompletion.create(messages=messages,
+#                                                       model=model,
+#                                                       temperature=temperature,
+#                                                       top_p=top_p,
+#                                                       frequency_penalty=frequency_penalty,
+#                                                       presence_penalty=presence_penalty)
+#             with open(save_path, "w") as f:
+#                 json.dump(completion, f) # result is here in completion
+#             return True 
+#         except Exception as e:
+#             print(Fore.RED + str(e), Style.RESET_ALL)
+#             if "This model's maximum context length is 4097 tokens." in str(e):
+#                 break
+#             time.sleep(10)
+#             # If rate limit reached we wait a random sleep time
+#             if "Rate limit reached" in str(e):
+#                 sleep_time = random.randint(60, 120)
+#                 time.sleep(sleep_time)
+#         max_try -= 1
+#     return False
 
 
 def generate_prompt(template_name, context: dict):
@@ -405,7 +378,7 @@ def remain_prompt_tokens(messages):
     return MAX_PROMPT_TOKENS - get_messages_tokens(messages)
 
 
-def whole_process(test_num, base_name, base_dir, repair, submits, total):
+def whole_process(model, test_num, base_name, base_dir, repair, submits, total):
     """
     Multiprocess version of start_generation
     :param test_num:
@@ -535,14 +508,10 @@ def whole_process(test_num, base_name, base_dir, repair, submits, total):
 
             # need to add LLM here instead of ask chatgpt
             # status = ask_chatgpt(messages, gpt_file_name)
-            stutus = ask_llm(messages, gpt_file_name)
-            if not status:
-                print(progress, Fore.RED + 'OpenAI Fail processing messages', Style.RESET_ALL)
+            llm_response = ask_llm(model, messages, gpt_file_name)
+            if not llm_response:
+                print(progress, Fore.RED + 'LLM Fail processing messages', Style.RESET_ALL)
                 break
-            
-            # read response from gpt
-            with open(gpt_file_name, "r") as f:
-                gpt_result = json.load(f)
 
             # 2. Extract information from GPT, and RUN save the result
             steps += 1
@@ -550,7 +519,7 @@ def whole_process(test_num, base_name, base_dir, repair, submits, total):
             raw_file_name = os.path.join(save_dir, str(steps) + "_raw_" + str(rounds) + ".json")
 
             # extract the test and save the result in raw_file_name
-            input_string = gpt_result["choices"][0]['message']["content"]
+            input_string = llm_response[0]['generation']["content"]
             test_passed, fatal_error = extract_and_run(input_string, raw_file_name, class_name, method_id, test_num,
                                                        project_name,
                                                        package)
@@ -616,11 +585,17 @@ def start_whole_process(source_dir, result_path, multiprocess=False, repair=True
     """
     # Get a list of all file paths
     file_paths = []
-    for root, dirs, files in os.walk(source_dir):
+    for root, _, files in os.walk(source_dir):
         for file in files:
             if file.endswith(".json"):
                 file_paths.append(os.path.join(root, file))
-
+    print('Start loading LLM into memory')
+    model = Llama.build(
+        ckpt_dir=model_path,
+        tokenizer_path=tokenizer_path,
+        max_seq_len=max_seq_len,
+        max_batch_size=max_batch_size,
+    )
     submits = 0
     total = len(file_paths) * test_number
     if multiprocess:
@@ -632,7 +607,7 @@ def start_whole_process(source_dir, result_path, multiprocess=False, repair=True
                 base_dir = os.path.join(result_path, base_name.split(".json")[0])
                 for test_num in range(1, test_number + 1):
                     submits += 1
-                    executor.submit(whole_process, test_num, base_name, base_dir, repair, submits, total)
+                    executor.submit(whole_process, model, test_num, base_name, base_dir, repair, submits, total)
         print("Main process executing!")
     else:
         print("Single process executing!")
@@ -641,4 +616,4 @@ def start_whole_process(source_dir, result_path, multiprocess=False, repair=True
             base_dir = os.path.join(result_path, base_name.split(".json")[0])
             for test_num in range(1, test_number + 1):
                 submits += 1
-                whole_process(test_num, base_name, base_dir, repair, submits, total)
+                whole_process(model, test_num, base_name, base_dir, repair, submits, total)

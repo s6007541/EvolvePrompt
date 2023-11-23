@@ -2,7 +2,6 @@ import mysql.connector
 from config import config
 import warnings
 
-
 class database(object):
     def __init__(self):
         self.host = config.get("database", "host")
@@ -26,10 +25,13 @@ class database(object):
             host=self.host,
             user=self.user,
             port=self.port,
-            password=self.password,
-            database=self.database
+            password=self.password
         )
         self.cursor = self.db.cursor()
+        script =f'CREATE DATABASE IF NOT EXISTS {self.database}'
+        self.cursor.execute(script)
+        script = f'USE {self.database}'
+        self.cursor.execute(script)
 
     def execute(self, script):
         if script is None:
@@ -37,6 +39,11 @@ class database(object):
         if self.db is None:
             self.connect()
         self.cursor.execute(script)
+
+    def commit(self):
+        if self.db is None:
+            self.connect()
+        self.db.commit()
 
     def select(self, table_name: str = "", conditions=None, result_cols: (str, list) = "*", script=None):
         if self.db is None:
@@ -128,8 +135,8 @@ def create_table():
     """
     Create table method and class if they do not exist.
     """
-    db = database()
-    sql_script = """
+    sql_scripts = [
+        """
         CREATE TABLE IF NOT EXISTS `class` (
         `id` INT AUTO_INCREMENT PRIMARY KEY,
         `project_name` VARCHAR(255) NOT NULL,
@@ -143,7 +150,9 @@ def create_table():
         `has_constructor` TINYINT(1) NOT NULL,
         `dependencies` TEXT NULL,
         CONSTRAINT `project_name` UNIQUE (`project_name`, `class_name`)
-    );
+        )
+        """,
+        """
         CREATE TABLE IF NOT EXISTS `method` (
         `id` INT AUTO_INCREMENT PRIMARY KEY,
         `project_name` VARCHAR(255) NOT NULL,
@@ -157,18 +166,20 @@ def create_table():
         `is_constructor` TINYINT(1) NOT NULL,
         `is_get_set` TINYINT(1) NOT NULL,
         `is_public` TINYINT(1) NOT NULL
-    );
-    """
-    db.execute(sql_script)
-
+        );
+        """
+    ]
+    for sql_script in sql_scripts:
+        db.execute(sql_script)
+    db.commit()
 
 def drop_table():
     """
     Truncate table method and class if they do exist.
     """
-    db = database()
-    sql_script = """
-        DROP TABLE `class`;
-        DROP TABLE `method`;
-    """
-    db.execute(sql_script)
+    sql_scripts = ['DROP TABLE IF EXISTS `class`', 'DROP TABLE IF EXISTS `method`']
+    for sql_script in sql_scripts:
+        db.execute(sql_script)
+    db.commit()
+
+db = database()

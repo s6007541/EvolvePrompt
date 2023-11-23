@@ -78,5 +78,4 @@ if __name__ == '__main__':
         print("wait for debugger")
         debugpy.wait_for_client()
         print("attached")
-
     run()

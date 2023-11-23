@@ -18,13 +18,13 @@ init()
 env = jinja2.Environment(loader=jinja2.FileSystemLoader('../prompt'))
 
 
-def ask_our_LLM(messages, save_path):
+def ask_llm(messages, save_path):
     
     if get_messages_tokens(messages) > MAX_PROMPT_TOKENS: # to confirm token limit before call LLM
         return False
     
-    ckpt_dir = "/mnt/sting/sorn111930/cut/codellama/CodeLlama-34b-Instruct/"
-    tokenizer_path = "/mnt/sting/sorn111930/cut/codellama/CodeLlama-34b-Instruct/tokenizer.model"
+    ckpt_dir = "" # path/to/CodeLlama-34b-Instruct/
+    tokenizer_path = "" # path/to/CodeLlama-34b-Instruct/tokenizer.model
     max_seq_len = 512
     max_batch_size = 4
     max_gen_len = None
@@ -100,7 +100,7 @@ def ask_chatgpt(messages, save_path):
                                                       presence_penalty=presence_penalty)
             with open(save_path, "w") as f:
                 json.dump(completion, f) # result is here in completion
-            return True  
+            return True 
         except Exception as e:
             print(Fore.RED + str(e), Style.RESET_ALL)
             if "This model's maximum context length is 4097 tokens." in str(e):
@@ -535,7 +535,7 @@ def whole_process(test_num, base_name, base_dir, repair, submits, total):
 
             # need to add LLM here instead of ask chatgpt
             # status = ask_chatgpt(messages, gpt_file_name)
-            stutus = ask_our_LLM(messages, gpt_file_name)
+            stutus = ask_llm(messages, gpt_file_name)
             if not status:
                 print(progress, Fore.RED + 'OpenAI Fail processing messages', Style.RESET_ALL)
                 break

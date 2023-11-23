@@ -26,3 +26,5 @@ urllib3==1.26.15
 yarl==1.9.1
 psutil~=5.9.5
 tiktoken~=0.3.3
+debugpy==1.8.0
+argparse==1.4.0

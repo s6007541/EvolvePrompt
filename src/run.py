@@ -1,4 +1,5 @@
 import os.path
+import argparse
 import time
 
 from tools import *
@@ -25,13 +26,6 @@ def run():
     Generate the test cases with one-click.
     :return: None
     """
-    
-    import debugpy
-    debugpy.listen(5679)
-    print("wait for debugger")
-    debugpy.wait_for_client()
-    print("attach")
-    
     # Delete history data
     drop_table()
 
@@ -72,4 +66,17 @@ if __name__ == '__main__':
     #     print(seconds)
     #     time.sleep(1)  # Pause for 1 second
     #     seconds -= 1
+    
+    parser = argparse.ArgumentParser(description='Process some integers.')
+    # use python run.py --debug to enable debugger
+    parser.add_argument('--debug', action='store_true', help='Enable debugger')
+    args = parser.parse_args()
+
+    if args.debug:
+        import debugpy
+        debugpy.listen(5679)
+        print("wait for debugger")
+        debugpy.wait_for_client()
+        print("attached")
+
     run()

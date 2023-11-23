@@ -1,5 +1,5 @@
 config/config_mac.ini
-# config/config.ini
+config/config.ini
 src/parse.py
 src/data/
 src/test.py
@@ -16,3 +16,4 @@ venv/
 result/
 sync.sh
 setup.py
+.vscode/

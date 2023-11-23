@@ -12,12 +12,6 @@
                 "host": "localhost",
                 "port": 5679
             },
-            "pathMappings": [
-                {
-                    "localRoot": "/mnt/sting/sorn111930/cut/ChatUniTest/src/",
-                    "remoteRoot": "/mnt/sting/sorn111930/cut/ChatUniTest/src/"
-                }
-            ],
             "justMyCode": false
         }
     ]

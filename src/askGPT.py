@@ -10,41 +10,36 @@ from colorama import Fore, Style, init
 from task import Task
 from llama import Llama
 import os
+import requests
 
 init()
 # Create a jinja2 environment
 env = jinja2.Environment(loader=jinja2.FileSystemLoader('../prompt'))
 
 
-def ask_llm(model, messages, save_path):
+def ask_llm(messages, save_path):
     
     if get_messages_tokens(messages) > MAX_PROMPT_TOKENS: # to confirm token limit before call LLM
         return False
     # Retry 5 times when error occurs
-    max_try = 5
+    max_try = 1
     while max_try:
         try: # change to our langauge model
             
-            response = model.chat_completion(
-                        [messages],  # type: ignore
-                        max_gen_len=None,
-                        temperature=temperature,
-                        top_p=top_p
-            )
-    
+            response = requests.post('http://127.0.0.1:8794/', json={'messages': messages})
+            
+            # Check if the request was successful (status code 200)
+            if response.status_code != 200:
+                raise Exception('LLM failed')
+            llm_response = response.json()
             with open(save_path, "w") as f:
-                json.dump(response, f) # result is here in completion
-            return response  
+                json.dump(llm_response, f) # result is here in completion
+            return llm_response
             
         except Exception as e:
             print(Fore.RED + str(e), Style.RESET_ALL)
             if "This model's maximum context length is 4097 tokens." in str(e):
                 break
-            time.sleep(10)
-            # If rate limit reached we wait a random sleep time
-            if "Rate limit reached" in str(e):
-                sleep_time = random.randint(60, 120)
-                time.sleep(sleep_time)
         max_try -= 1
     return None
 
@@ -378,7 +373,7 @@ def remain_prompt_tokens(messages):
     return MAX_PROMPT_TOKENS - get_messages_tokens(messages)
 
 
-def whole_process(model, test_num, base_name, base_dir, repair, submits, total):
+def whole_process(test_num, base_name, base_dir, repair, submits, total):
     """
     Multiprocess version of start_generation
     :param test_num:
@@ -508,7 +503,7 @@ def whole_process(model, test_num, base_name, base_dir, repair, submits, total):
 
             # need to add LLM here instead of ask chatgpt
             # status = ask_chatgpt(messages, gpt_file_name)
-            llm_response = ask_llm(model, messages, gpt_file_name)
+            llm_response = ask_llm(messages, gpt_file_name)
             if not llm_response:
                 print(progress, Fore.RED + 'LLM Fail processing messages', Style.RESET_ALL)
                 break
@@ -572,7 +567,7 @@ def whole_process(model, test_num, base_name, base_dir, repair, submits, total):
     if os.path.exists(run_temp_dir):
         run_temp_dir = os.path.abspath(run_temp_dir)
         shutil.rmtree(run_temp_dir)
-    assert False
+    # assert False
 
 
 def start_whole_process(source_dir, result_path, multiprocess=False, repair=True):
@@ -590,12 +585,6 @@ def start_whole_process(source_dir, result_path, multiprocess=False, repair=True
             if file.endswith(".json"):
                 file_paths.append(os.path.join(root, file))
     print('Start loading LLM into memory')
-    model = Llama.build(
-        ckpt_dir=model_path,
-        tokenizer_path=tokenizer_path,
-        max_seq_len=max_seq_len,
-        max_batch_size=max_batch_size,
-    )
     submits = 0
     total = len(file_paths) * test_number
     if multiprocess:
@@ -607,7 +596,7 @@ def start_whole_process(source_dir, result_path, multiprocess=False, repair=True
                 base_dir = os.path.join(result_path, base_name.split(".json")[0])
                 for test_num in range(1, test_number + 1):
                     submits += 1
-                    executor.submit(whole_process, model, test_num, base_name, base_dir, repair, submits, total)
+                    executor.submit(whole_process, test_num, base_name, base_dir, repair, submits, total)
         print("Main process executing!")
     else:
         print("Single process executing!")
@@ -616,4 +605,4 @@ def start_whole_process(source_dir, result_path, multiprocess=False, repair=True
             base_dir = os.path.join(result_path, base_name.split(".json")[0])
             for test_num in range(1, test_number + 1):
                 submits += 1
-                whole_process(model, test_num, base_name, base_dir, repair, submits, total)
+                whole_process(test_num, base_name, base_dir, repair, submits, total)

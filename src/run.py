@@ -53,7 +53,7 @@ def run():
 
     # assert False
     # Start the whole process
-    start_generation(sql_query, multiprocess=False, repair=True, confirmed=False)
+    start_generation(sql_query, multiprocess=True, repair=True, confirmed=False)
 
     # Export the result
     result_analysis()

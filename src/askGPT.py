@@ -8,7 +8,6 @@ import javalang
 import jinja2
 from colorama import Fore, Style, init
 from task import Task
-from llama import Llama
 import os
 import requests
 

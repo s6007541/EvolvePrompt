@@ -17,19 +17,17 @@ model = Llama.build(
 @app.route('/', methods=['POST'])
 def predict():
     # Get input data (you need to replace this with your actual data)
+    print(f'Received request')
     content = request.json
     messages = content.get('messages')
     completion = model.chat_completion(
             [messages],  # type: ignore
-            max_gen_len=256,
+            max_gen_len=max_seq_len,
             temperature=temperature,
             top_p=top_p
     )
     # Return the predictions as JSON
     return completion
-
-def hello():
-    return 'Hello, World!'
 
 if __name__ == '__main__':
     app.run(port=8794)

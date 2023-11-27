@@ -1,44 +1,36 @@
 import random
+from tools import *
+from askGPT import *
+import argparse
+from run import *
+from scope_test import *
 
 
-class Solution:
-    def __init__(self, sol):
-        self.sol = sol
+class EvoPrompt:
+    def __init__(self, prompt, method_ids):
+        self.prompt = prompt
         
     def evaluate(self):
-        self.fitness = fitness(self.sol)
+        self.fitness = fitness(self.prompt, method_ids)
         
     def __str__(self):
-        return self.sol
+        return self.prompt
 
-def get_init_prompts(orig_prompt, num_prompts):
-    orig_sol = Solution(orig_prompt)
-    orig_sol.evaluate()
-    init_prompts = [orig_sol]
-    for _ in range(num_prompts - 1):
-        # TODO: Ask LLM to rephrase the original prompt
-        new_sol = Solution(orig_prompt)
-        ###############################################
-        new_sol.evaluate()
-        init_prompts.append(new_sol)
-    return init_prompts
+def fitness(prompt, method_ids):
+    #TODO: Evaluate with 1 run of ChatUniTest on development set
+    # start_generation(method_ids)
 
-def fitness(solution):
-    # TODO: Evaluate with 1 run of ChatUniTest on development set
+    #TODO: extract infomation from scope test for fitness score calculation
+
     return random.random()
-    ###############################################
 
 def crossover_and_mutate(p1, p2):
-    instruction_template = """Please follow the instruction step-by-step to generate a better prompt.
-1. Cross over the following prompts and generate a new prompt:
-Prompt 1: {}
-Prompt 2: {}
-2. Mutate the prompt generated in Step 1 and generate a final prompt bracketed with <prompt> and </prompt>."""
-    instruction = instruction_template.format(p1, p2)
-    # TODO: Instruct LLM to do crossover and mutation
-    o = Solution(str(p1))
-    ###############################################
-    
+    context = {"prompt_1": p1.sol,  "prompt_2" : p2.sol}
+    messages = generate_messages(TEMPLATE_GA, context)
+    llm_response = ask_llm(messages)
+    new_prompt = re.search(r'<prompt>(.*?)</prompt>', llm_response, re.DOTALL).group(1).strip()
+
+    o = EvoPrompt(new_prompt)
     o.evaluate()
     return o
 
@@ -46,11 +38,15 @@ def roulette_select(population):
     fitnesses = [s.fitness for s in population]
     return random.choices(population, weights=fitnesses)[0]
 
-def ga(pop_size=10, generations=5):
-    orig_prompt = 'This is a dummy prompt.'  # TODO: Original prompt from ChatUniTest
-    population = get_init_prompts(orig_prompt, pop_size)
-    
-    for i in range(generations):
+def ga(method_ids, pop_size=10, generations=5):
+    init_prompts = [generate_prompt(f"p{i+1}.jinja2", {}) for i in range(pop_size)]  
+    population = []
+    for prompt in init_prompts:
+        new_sol = EvoPrompt(prompt, method_ids)
+        new_sol.evaluate()
+        population.append(new_sol)
+
+    for _ in range(generations):
         next_gen = []
         
         while len(next_gen) < len(population):
@@ -60,7 +56,6 @@ def ga(pop_size=10, generations=5):
             
             # crossover and mutate to generate an offspring
             o = crossover_and_mutate(p1, p2)
-            
             next_gen.append(o)
             
         # now we have the full next gen
@@ -79,8 +74,35 @@ def save_best(filename, solution):
         f.write(str(solution))
     #################################
 
+def load_project_data():
+    drop_table()
+    create_table()
+    info_path = Task.parse(project_dir)
+    parse_data(info_path)
+    clear_dataset()
+    export_data()
 
 if __name__ == '__main__':
-    best_sol = ga()
+    parser = argparse.ArgumentParser(description='Process some integers.')
+    parser.add_argument('--debug', action='store_true', help='Enable debugger')
+    args = parser.parse_args()
+    if args.debug:
+        import debugpy
+        debugpy.listen(5679)
+        print("wait for debugger")
+        debugpy.wait_for_client()
+        print("attached")
+
+    load_project_data()    
+    project_name = os.path.basename(os.path.normpath(project_dir))
+    sql_query = f"""
+        SELECT id FROM method WHERE project_name='{project_name}' AND class_name='NumberUtils';
+    """
+
+    method_ids = [x[0] for x in db.select(script=sql_query)]
+    method_ids = method_ids[:3] # Choose 3 methods for testing
+
+    best_sol = ga(method_ids)
+    
     save_path = 'best.txt'  # TODO: Change save path
     save_best(save_path, best_sol)

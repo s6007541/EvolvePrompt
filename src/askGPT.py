@@ -10,13 +10,14 @@ from colorama import Fore, Style, init
 from task import Task
 import os
 import requests
+import openai
 
 init()
 # Create a jinja2 environment
 env = jinja2.Environment(loader=jinja2.FileSystemLoader('../prompt'))
+initPop_env = jinja2.Environment(loader=jinja2.FileSystemLoader('../prompt/initial_population'))
 
-
-def ask_llm(messages, save_path):
+def ask_llm(messages, save_path=None):
     
     if get_messages_tokens(messages) > MAX_PROMPT_TOKENS: # to confirm token limit before call LLM
         return False
@@ -26,14 +27,19 @@ def ask_llm(messages, save_path):
         try: # change to our langauge model
             
             response = requests.post('http://127.0.0.1:8794/', json={'messages': messages})
-            
+
             # Check if the request was successful (status code 200)
             if response.status_code != 200:
                 raise Exception('LLM failed')
             llm_response = response.json()
-            with open(save_path, "w") as f:
-                json.dump(llm_response, f) # result is here in completion
-            return llm_response
+            if save_path:
+                with open(save_path, "w") as f:
+                    json.dump(llm_response, f) # result is here in completion
+            if not llm_response:
+                return None
+            else:
+                input_string = llm_response[0]['generation']["content"]
+                return input_string
             
         except Exception as e:
             print(Fore.RED + str(e), Style.RESET_ALL)
@@ -43,42 +49,46 @@ def ask_llm(messages, save_path):
     return None
 
 
-# def ask_chatgpt(messages, save_path):
-#     """
-#     Send messages to GPT, and save its response.
-#     :param messages: The messages to send to OpenAI.
-#     :param save_path: The path to save the result.
-#     :return: [{"role":"user","content":"..."}]
-#     """
-#     # Send a request to OpenAI
-#     # Max prompt token exceeded, no need to send request.
-#     if get_messages_tokens(messages) > MAX_PROMPT_TOKENS:
-#         return False
-#     openai.api_key = random.choice(api_keys)
-#     # Retry 5 times when error occurs
-#     max_try = 5
-#     while max_try:
-#         try: # change to our langauge model
-#             completion = openai.ChatCompletion.create(messages=messages,
-#                                                       model=model,
-#                                                       temperature=temperature,
-#                                                       top_p=top_p,
-#                                                       frequency_penalty=frequency_penalty,
-#                                                       presence_penalty=presence_penalty)
-#             with open(save_path, "w") as f:
-#                 json.dump(completion, f) # result is here in completion
-#             return True 
-#         except Exception as e:
-#             print(Fore.RED + str(e), Style.RESET_ALL)
-#             if "This model's maximum context length is 4097 tokens." in str(e):
-#                 break
-#             time.sleep(10)
-#             # If rate limit reached we wait a random sleep time
-#             if "Rate limit reached" in str(e):
-#                 sleep_time = random.randint(60, 120)
-#                 time.sleep(sleep_time)
-#         max_try -= 1
-#     return False
+def ask_chatgpt(messages, save_path=None):
+    """
+    Send messages to GPT, and save its response.
+    :param messages: The messages to send to OpenAI.
+    :param save_path: The path to save the result.
+    :return: [{"role":"user","content":"..."}]
+    """
+    # Send a request to OpenAI
+    # Max prompt token exceeded, no need to send request.
+    if get_messages_tokens(messages) > MAX_PROMPT_TOKENS:
+        return False
+    openai.api_key = os.environ["OPENAI_API_KEY"]
+    max_try = 1
+    while max_try:
+        try: # change to our langauge model
+            llm_response = openai.ChatCompletion.create(messages=messages,
+                                                      model=gpt_model,
+                                                      temperature=gpt_temperature,
+                                                      top_p=gpt_top_p,
+                                                      frequency_penalty=gpt_frequency_penalty,
+                                                      presence_penalty=gpt_presence_penalty)
+            if save_path:
+                with open(save_path, "w") as f:
+                    json.dump(llm_response, f) # result is here in completion
+            if not llm_response:
+                return None
+            else:
+                input_string = llm_response["choices"][0]['message']["content"]
+                return input_string
+        except Exception as e:
+            print(Fore.RED + str(e), Style.RESET_ALL)
+            if "This model's maximum context length is 4097 tokens." in str(e):
+                break
+            time.sleep(10)
+            # If rate limit reached we wait a random sleep time
+            if "Rate limit reached" in str(e):
+                sleep_time = random.randint(60, 120)
+                time.sleep(sleep_time)
+        max_try -= 1
+    return None
 
 
 def generate_prompt(template_name, context: dict):
@@ -89,9 +99,11 @@ def generate_prompt(template_name, context: dict):
     :return:
     """
     # Load template
-    template = env.get_template(template_name)
+    try: 
+        template = env.get_template(template_name)
+    except:
+        template = initPop_env.get_template(template_name)
     prompt = template.render(context)
-
     return prompt
 
 
@@ -102,7 +114,7 @@ def load_context_file(context_file):
     return context_file
 
 
-def generate_messages(template_name, context_file):
+def generate_messages(template_name, context_file, evo_prompt=None):
     """
     This function generates messages before asking GPT, using user and system templates.
     :param template_name: The template name of the user template.
@@ -114,7 +126,14 @@ def generate_messages(template_name, context_file):
 
     system_name = f"{template_name.split('.')[0]}_system.jinja2"
     system_path = os.path.join("../prompt", system_name)
-    if os.path.exists(system_path):
+    if template_name == TEMPLATE_GA:
+        user_message = generate_prompt(TEMPLATE_GA, context)
+        messages.append({"role": "user", "content": user_message})
+        return messages
+
+    if evo_prompt != None:
+        messages.append({"role": "system", "content": evo_prompt})
+    elif os.path.exists(system_path):
         system_message = generate_prompt(system_name, {})
         messages.append({"role": "system", "content": system_message})
 
@@ -372,7 +391,7 @@ def remain_prompt_tokens(messages):
     return MAX_PROMPT_TOKENS - get_messages_tokens(messages)
 
 
-def whole_process(test_num, base_name, base_dir, repair, submits, total):
+def whole_process(test_num, base_name, base_dir, repair, submits, total, evo_prompt=None):
     """
     Multiprocess version of start_generation
     :param test_num:
@@ -414,7 +433,6 @@ def whole_process(test_num, base_name, base_dir, repair, submits, total):
         strings = strings.strip()
         return strings
 
-    # prompting part # our project must implement evoluation algorithm here
     try:
         while rounds < max_rounds:
             # 1. Ask GPT
@@ -473,28 +491,28 @@ def whole_process(test_num, base_name, base_dir, repair, submits, total):
             else:  # Direction_1 or Direction_3
                 if not context_d_3["c_deps"] and not context_d_3["m_deps"]:  # No dependencies d_1
                     context = copy.deepcopy(context_d_1)
-                    messages = generate_messages(TEMPLATE_NO_DEPS, context)
+                    messages = generate_messages(TEMPLATE_NO_DEPS, context, evo_prompt)
                     if remain_prompt_tokens(messages) < 0:  # Truncate information
                         context["information"] = _remove_imports_context(context["information"])
-                        messages = generate_messages(TEMPLATE_NO_DEPS, context)
+                        messages = generate_messages(TEMPLATE_NO_DEPS, context, evo_prompt)
                         if remain_prompt_tokens(messages) < 0:  # Failed generating messages
                             messages = []
                 else:  # Has dependencies d_3
                     context = copy.deepcopy(context_d_3)
-                    messages = generate_messages(TEMPLATE_WITH_DEPS, context)
+                    messages = generate_messages(TEMPLATE_WITH_DEPS, context, evo_prompt)
                     if remain_prompt_tokens(messages) < 0:  # Need Truncate information
                         context["full_fm"] = _remove_imports_context(context["full_fm"])
-                        messages = generate_messages(TEMPLATE_WITH_DEPS, context)
+                        messages = generate_messages(TEMPLATE_WITH_DEPS, context, evo_prompt)
                         if remain_prompt_tokens(messages) < 0:  # Failed generating messages
                             messages = []
 
                 if not messages:  # Turn to minimum messages
                     context = copy.deepcopy(context_d_1)  # use direction 1 as template
                     context["information"] = context_d_3["full_fm"]  # use full_fm d_3 as context
-                    messages = generate_messages(TEMPLATE_NO_DEPS, context)
+                    messages = generate_messages(TEMPLATE_NO_DEPS, context, evo_prompt)
                     if remain_prompt_tokens(messages) < 0:
                         context["information"] = _remove_imports_context(context["information"])
-                        messages = generate_messages(TEMPLATE_NO_DEPS, context)  # !! MINIMUM MESSAGES!!
+                        messages = generate_messages(TEMPLATE_NO_DEPS, context, evo_prompt)  # !! MINIMUM MESSAGES!!
                         if remain_prompt_tokens(messages) < 0:  # Failed generating messages
                             print(progress, Fore.RED + "Tokens not enough, test fatal error...", Style.RESET_ALL)
                             break
@@ -513,8 +531,7 @@ def whole_process(test_num, base_name, base_dir, repair, submits, total):
             raw_file_name = os.path.join(save_dir, str(steps) + "_raw_" + str(rounds) + ".json")
 
             # extract the test and save the result in raw_file_name
-            input_string = llm_response[0]['generation']["content"]
-            test_passed, fatal_error = extract_and_run(input_string, raw_file_name, class_name, method_id, test_num,
+            test_passed, fatal_error = extract_and_run(llm_response, raw_file_name, class_name, method_id, test_num,
                                                        project_name,
                                                        package)
 
@@ -569,7 +586,7 @@ def whole_process(test_num, base_name, base_dir, repair, submits, total):
     # assert False
 
 
-def start_whole_process(source_dir, result_path, multiprocess=False, repair=True):
+def start_whole_process(source_dir, result_path, multiprocess=False, repair=True, evo_prompt=None):
     """
     Start repair process
     :param repair:  Whether to repair the code
@@ -604,4 +621,4 @@ def start_whole_process(source_dir, result_path, multiprocess=False, repair=True
             base_dir = os.path.join(result_path, base_name.split(".json")[0])
             for test_num in range(1, test_number + 1):
                 submits += 1
-                whole_process(test_num, base_name, base_dir, repair, submits, total)
+                whole_process(test_num, base_name, base_dir, repair, submits, total, evo_prompt=evo_prompt)

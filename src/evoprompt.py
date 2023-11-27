@@ -9,7 +9,7 @@ from scope_test import *
 class EvoPrompt:
     def __init__(self, prompt, method_ids):
         self.prompt = prompt
-        
+        self.method_ids = method_ids
     def evaluate(self):
         self.fitness = fitness(self.prompt, method_ids)
         
@@ -24,13 +24,13 @@ def fitness(prompt, method_ids):
 
     return random.random()
 
-def crossover_and_mutate(p1, p2):
-    context = {"prompt_1": p1.sol,  "prompt_2" : p2.sol}
+def crossover_and_mutate(p1, p2, method_ids):
+    context = {"prompt_1": p1.prompt,  "prompt_2" : p2.prompt}
     messages = generate_messages(TEMPLATE_GA, context)
     llm_response = ask_llm(messages)
     new_prompt = re.search(r'<prompt>(.*?)</prompt>', llm_response, re.DOTALL).group(1).strip()
 
-    o = EvoPrompt(new_prompt)
+    o = EvoPrompt(new_prompt, method_ids)
     o.evaluate()
     return o
 
@@ -55,7 +55,7 @@ def ga(method_ids, pop_size=10, generations=5):
             p2 = roulette_select(population)
             
             # crossover and mutate to generate an offspring
-            o = crossover_and_mutate(p1, p2)
+            o = crossover_and_mutate(p1, p2, method_ids)
             next_gen.append(o)
             
         # now we have the full next gen
@@ -95,6 +95,7 @@ if __name__ == '__main__':
 
     load_project_data()    
     project_name = os.path.basename(os.path.normpath(project_dir))
+
     sql_query = f"""
         SELECT id FROM method WHERE project_name='{project_name}' AND class_name='NumberUtils';
     """

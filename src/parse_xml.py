@@ -84,6 +84,10 @@ def result_analysis(result_path=None):
     all_java_files_cnt = 0
     success_cnt = 0
     success_cnt_json = 0
+    abort_cnt = 0
+    syntax_error_cnt = 0
+    compile_error_cnt = 0
+    runtime_error_cnt = 0
     fail_cnt = 0
     runtemp_cnt = 0
     repair_success_cnt = 0
@@ -99,6 +103,8 @@ def result_analysis(result_path=None):
             for i in range(1, test_number + 1):
                 sub_dir = os.path.join(directory_name, str(i))
                 if os.path.exists(sub_dir):
+                    if len(os.listdir(sub_dir)) == 0:
+                        abort_cnt += 1
                     runtemp_path = os.path.abspath(os.path.join(sub_dir, "runtemp/"))
                     if os.path.exists(runtemp_path):
                         runtemp_cnt += 1
@@ -111,11 +117,19 @@ def result_analysis(result_path=None):
                             if file_name.endswith(".java"):
                                 all_java_files_cnt += 1
                                 break
+                    else:
+                        syntax_error_cnt += 1
                     coverage_json = os.path.join(temp_dir, "coverage.json")
                     if os.path.exists(coverage_json):
                         success_cnt_json += 1
 
                     json_file_number = len(os.listdir(sub_dir)) - 1
+                    compile_error_path = os.path.join(temp_dir, "compile_error.txt")
+                    runtime_error_path = os.path.join(temp_dir, "runtime_error.txt")
+                    if os.path.exists(compile_error_path):
+                        compile_error_cnt += 1
+                    if os.path.exists(runtime_error_path):
+                        runtime_error_cnt += 1
                     if os.path.exists(coverage_path):
                         success_cnt += 1
                         if json_file_number > 3:
@@ -131,6 +145,10 @@ def result_analysis(result_path=None):
     print("Success:             " + str(success_cnt))
     print("Success json:        " + str(success_cnt_json))
     print("Fail:                " + str(fail_cnt))
+    print("Abort:               " + str(abort_cnt))
+    print("Syntax Error:        " + str(syntax_error_cnt))
+    print("Compile Error:       " + str(compile_error_cnt))
+    print("Runtime Error:       " + str(runtime_error_cnt))
     print("Repair success:      " + str(repair_success_cnt))
     print("Repair failed:       " + str(repair_failed_cnt))
     print("Repair rounds:       " + str(repair_rounds))
@@ -147,5 +165,17 @@ def full_analysis(directory=result_dir):
 
 if __name__ == '__main__':
     # result_analysis()
-    full_analysis("")
+    import argparse
+    parser = argparse.ArgumentParser(description='Process some integers.')
+    # use python run.py --debug to enable debugger
+    parser.add_argument('--debug', action='store_true', help='Enable debugger')
+    args = parser.parse_args()
+
+    if args.debug:
+        import debugpy
+        debugpy.listen(5679)
+        print("wait for debugger")
+        debugpy.wait_for_client()
+        print("attached")
+    full_analysis()
     # get_numberutils_result()

@@ -17,7 +17,7 @@ for dir in ${xml_dirs[@]}; do
     
     # If there are GPT JSON files, print the directory name and the number of files
     if [[ $num_json -gt 1 ]]; then
-        # echo "Directory: $dir"
+        echo "Directory: $dir"
         echo "Number: $num_json"
 		((count1++))
     fi
@@ -38,7 +38,7 @@ for dir in ${temp_dirs[@]}; do
     
     # If there are GPT JSON files, print the directory name and the number of files
     if [[ $num_json -gt 1 ]]; then
-        # echo "Directory: $dir"
+        echo "Directory: $dir"
         echo "Number: $num_json"
 		((count2++))
     fi

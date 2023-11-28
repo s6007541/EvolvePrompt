@@ -1,5 +1,5 @@
 import os
-os.environ["CUDA_VISIBLE_DEVICES"] = "7"
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 from flask import Flask, request, jsonify
 from llama import Llama
@@ -22,7 +22,7 @@ def predict():
     messages = content.get('messages')
     completion = model.chat_completion(
             [messages],  # type: ignore
-            max_gen_len=max_seq_len,
+            max_gen_len=None,
             temperature=temperature,
             top_p=top_p
     )

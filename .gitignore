@@ -21,7 +21,6 @@ setup.py
 *.java.txt
 *Test.java
 *.class
-*.txt
 *.xml
 *.ser
 .config/config_sorn.ini

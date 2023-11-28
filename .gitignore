@@ -16,3 +16,11 @@ venv/
 result/
 sync.sh
 setup.py
+.config/config.ini
+
+*.java.txt
+*Test.java
+*.class
+*.txt
+*.xml
+*.ser

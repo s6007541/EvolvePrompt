@@ -135,6 +135,8 @@ def result_analysis(result_path=None):
                         if json_file_number > 3:
                             repair_success_cnt += 1
                             repair_rounds[math.ceil(json_file_number / 3)] += 1
+                            if math.ceil(json_file_number / 3) == 2:
+                                print(sub_dir)
                     else:
                         fail_cnt += 1
                         if json_file_number > 3:

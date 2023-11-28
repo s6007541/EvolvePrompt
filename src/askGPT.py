@@ -610,11 +610,10 @@ def start_whole_process(method_ids, source_dir, result_path, multiprocess=False,
                 if method_id in method_ids:
                     file_paths.append(os.path.join(root, file))
     
-    # cand_evolve = True
     # filter file paths if evo_prompt to only file paths are candidates
     if cand_evolve:
         filtered_file_paths = []
-        with open("./evolve_candidates/gson.txt", "r") as cand_f:
+        with open("./evolve_candidates/gson_16.txt", "r") as cand_f:
             lines = cand_f.readlines()
             lines = [l.strip() for l in lines]
         

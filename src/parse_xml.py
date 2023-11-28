@@ -156,6 +156,11 @@ def result_analysis(result_path=None):
     print("Repair rounds:       " + str(repair_rounds))
     print("runtemp counts:      " + str(runtemp_cnt))
     print()
+    
+    return {
+        "all-tests":        all_files_cnt,
+        "correct-tests":    success_cnt,
+    }
 
 
 def full_analysis(directory=result_dir):

@@ -4,12 +4,12 @@ from askGPT import *
 import argparse
 from run import *
 from scope_test import *
+from parse_xml import result_analysis
 
 #NOTE: Hyperparameters
 POPSIZE = 10
 NUM_GENERATION = 5
 
-# TODO: Change save path
 BASE_PATH = "../prompt/"
 SAVE_PATH = os.path.join(BASE_PATH, "evoprompt")
 if not os.path.exists(SAVE_PATH):
@@ -26,11 +26,10 @@ class EvoPrompt:
         return self.prompt
 
 def fitness(prompt, method_ids):
-    #TODO: Evaluate with 1 run of ChatUniTest on development set
-    start_generation(method_ids, multiprocess=False, repair=False, evo_prompt=prompt)
-
-    #TODO: extract infomation from scope test for fitness score calculation
-    return random.random()
+    result_path = start_generation(method_ids, multiprocess=False, repair=False, evo_prompt=prompt, cand_evolve=True)
+    results = result_analysis(result_path)
+    score = results['correct-tests'] / results['all-tests']  # Fitness = Correct / Attempts
+    return score
 
 def crossover_and_mutate(p1, p2, method_ids):
     print(Fore.GREEN + "*"*20 + "CROSSOVER AND MUTATION" + "*"*20)
@@ -38,9 +37,13 @@ def crossover_and_mutate(p1, p2, method_ids):
     messages = generate_messages(TEMPLATE_GA, context)
     llm_response = ask_llm(messages)
     if llm_response:
-        new_prompt = re.search(r'<prompt>(.*?)</prompt>', llm_response, re.DOTALL).group(1).strip()
+        try:
+            new_prompt = re.search(r'<prompt>(.*?)</prompt>', llm_response, re.DOTALL).group(1).strip()
+        except:
+            # TODO: handle case when llm_response does not contains <prompt> and </prompt>
+            new_prompt = p1.prompt
     else: 
-        #TODO: handle case when llm_response return None
+        # TODO: handle case when llm_response return None
         new_prompt = p1.prompt
         
     o = EvoPrompt(new_prompt, method_ids)
@@ -49,7 +52,11 @@ def crossover_and_mutate(p1, p2, method_ids):
 
 def roulette_select(population):
     fitnesses = [s.fitness for s in population]
-    return random.choices(population, weights=fitnesses)[0]
+    if max(fitnesses) == 0:
+        # all fitnesses are 0
+        return random.choice(population)
+    else:
+        return random.choices(population, weights=fitnesses)[0]
 
 def delete_previous_log():
     if os.path.exists(SAVE_PATH):
@@ -91,13 +98,12 @@ def ga(method_ids, pop_size=POPSIZE, generations=NUM_GENERATION):
         
         best_solution = population[0]
         print(Fore.YELLOW + f"GENERATION {i + 1}: \n", best_solution, Style.RESET_ALL)
-        file_name = f"generation_{i+1}.txt"
+        file_name = f"generation_{i+1}.jinja2"
         save_best(file_name, best_solution)
     return best_solution
 
 def save_best(file_name, solution):
     file_path = os.path.join(SAVE_PATH, file_name)
-    # TODO: Change to Jinja2 format?
     with open(file_path, 'w') as f:
         f.write(str(solution))
 
@@ -123,11 +129,8 @@ if __name__ == '__main__':
     load_project_data()    
     project_name = os.path.basename(os.path.normpath(project_dir))
     
-    # Choose a class name for testing
-    class_name = "NumberUtils"
-
     sql_query = f"""
-        SELECT id FROM method WHERE project_name='{project_name}' AND class_name='{class_name}';
+        SELECT id FROM method WHERE project_name='{project_name}';
     """
 
     method_ids = [x[0] for x in db.select(script=sql_query)]
@@ -136,8 +139,6 @@ if __name__ == '__main__':
         raise Exception("Method ids cannot be None.")
     if not isinstance(method_ids[0], str):
         method_ids = [str(i) for i in method_ids]
-
-    method_ids = method_ids[:2] # Choose 2 methods for testing
 
     best_sol = ga(method_ids)
     

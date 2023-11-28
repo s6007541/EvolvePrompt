@@ -1,0 +1,16 @@
+3%Gson%GsonBuilder%setVersion%d1
+8%Gson%GsonBuilder%enableComplexMapKeySerialization%d1
+22%Gson%GsonBuilder%setDateFormat%d1
+181%Gson%JsonReader%isLenient%d1
+245%Gson%GsonBuildConfig%GsonBuildConfig%d1
+260%Gson%NonNullElementWrapperList%remove%d1
+266%Gson%NonNullElementWrapperList%indexOf%d1
+268%Gson%NonNullElementWrapperList%toArray%d1
+289%Gson%JsonElement%getAsInt%d1
+312%Gson%ObjectTypeAdapter%newFactory%d1
+318%Gson%JsonPrimitive%JsonPrimitive%d1
+319%Gson%JsonPrimitive%JsonPrimitive%d1
+322%Gson%JsonPrimitive%deepCopy%d1
+344%Gson%TypeAdapterRuntimeTypeWrapper%isReflective%d1
+351%Gson%$Gson$Preconditions%checkNotNull%d1
+370%Gson%JsonObject%add%d1

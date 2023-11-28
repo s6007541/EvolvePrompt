@@ -59,13 +59,13 @@ def find_all_files(folder_path: str, method_ids: list = None):
     return file_list
 
 
-def start_generation(method_ids, sql_query=None, multiprocess=False, repair=True, confirmed=False, evo_prompt=None):
+def start_generation(method_ids, sql_query=None, multiprocess=False, repair=True, confirmed=False, evo_prompt=None, cand_evolve=False):
     """
     Start the scope test.
     :param multiprocess: if it needs to
     :param repair:
     :param sql_query:
-    :return:
+    :return: The result path
     """
     
     print("You are about to start the whole process of scope test.")
@@ -88,7 +88,7 @@ def start_generation(method_ids, sql_query=None, multiprocess=False, repair=True
     # Find all the files
     source_dir = os.path.join(dataset_dir, "direction_1")
 
-    start_whole_process(method_ids, source_dir, result_path, multiprocess=multiprocess, repair=repair, evo_prompt=evo_prompt)
+    start_whole_process(method_ids, source_dir, result_path, multiprocess=multiprocess, repair=repair, evo_prompt=evo_prompt, cand_evolve=True)
     print("WHOLE PROCESS FINISHED")
     # Run accumulated tests
     project_path = os.path.abspath(project_dir)
@@ -103,6 +103,7 @@ def start_generation(method_ids, sql_query=None, multiprocess=False, repair=True
         print(e)
 
     print("SCOPE TEST FINISHED")
+    return result_path
 
 
 if __name__ == '__main__':

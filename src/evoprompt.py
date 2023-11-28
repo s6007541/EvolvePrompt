@@ -5,6 +5,15 @@ import argparse
 from run import *
 from scope_test import *
 
+#NOTE: Hyperparameters
+POPSIZE = 10
+NUM_GENERATION = 5
+
+# TODO: Change save path
+BASE_PATH = "../prompt/"
+SAVE_PATH = os.path.join(BASE_PATH, "evoprompt")
+if not os.path.exists(SAVE_PATH):
+    os.makedirs(SAVE_PATH)
 
 class EvoPrompt:
     def __init__(self, prompt, method_ids):
@@ -18,18 +27,22 @@ class EvoPrompt:
 
 def fitness(prompt, method_ids):
     #TODO: Evaluate with 1 run of ChatUniTest on development set
-    # start_generation(method_ids)
+    start_generation(method_ids, multiprocess=False, repair=False, evo_prompt=prompt)
 
     #TODO: extract infomation from scope test for fitness score calculation
-
     return random.random()
 
 def crossover_and_mutate(p1, p2, method_ids):
+    print(Fore.GREEN + "*"*20 + "CROSSOVER AND MUTATION" + "*"*20)
     context = {"prompt_1": p1.prompt,  "prompt_2" : p2.prompt}
     messages = generate_messages(TEMPLATE_GA, context)
     llm_response = ask_llm(messages)
-    new_prompt = re.search(r'<prompt>(.*?)</prompt>', llm_response, re.DOTALL).group(1).strip()
-
+    if llm_response:
+        new_prompt = re.search(r'<prompt>(.*?)</prompt>', llm_response, re.DOTALL).group(1).strip()
+    else: 
+        #TODO: handle case when llm_response return None
+        new_prompt = p1.prompt
+        
     o = EvoPrompt(new_prompt, method_ids)
     o.evaluate()
     return o
@@ -38,7 +51,20 @@ def roulette_select(population):
     fitnesses = [s.fitness for s in population]
     return random.choices(population, weights=fitnesses)[0]
 
-def ga(method_ids, pop_size=10, generations=5):
+def delete_previous_log():
+    if os.path.exists(SAVE_PATH):
+        file_list = os.listdir(SAVE_PATH)
+        for file in file_list:
+            file_path = os.path.join(SAVE_PATH, file)
+            try:
+                if os.path.isfile(file_path):
+                    os.remove(file_path)
+                    print(f"File '{file}' deleted.")
+            except Exception as e:
+                print(f"Error deleting file '{file}': {e}")
+
+def ga(method_ids, pop_size=POPSIZE, generations=NUM_GENERATION):
+    delete_previous_log()
     init_prompts = [generate_prompt(f"p{i+1}.jinja2", {}) for i in range(pop_size)]  
     population = []
     for prompt in init_prompts:
@@ -46,7 +72,7 @@ def ga(method_ids, pop_size=10, generations=5):
         new_sol.evaluate()
         population.append(new_sol)
 
-    for _ in range(generations):
+    for i in range(generations):
         next_gen = []
         
         while len(next_gen) < len(population):
@@ -64,15 +90,16 @@ def ga(method_ids, pop_size=10, generations=5):
         population = population[:pop_size]
         
         best_solution = population[0]
-        # print(i + 1, best_solution, best_solution.fitness)
-        
+        print(Fore.YELLOW + f"GENERATION {i + 1}: \n", best_solution, Style.RESET_ALL)
+        file_name = f"generation_{i+1}.txt"
+        save_best(file_name, best_solution)
     return best_solution
 
-def save_best(filename, solution):
+def save_best(file_name, solution):
+    file_path = os.path.join(SAVE_PATH, file_name)
     # TODO: Change to Jinja2 format?
-    with open(filename, 'w') as f:
+    with open(file_path, 'w') as f:
         f.write(str(solution))
-    #################################
 
 def load_project_data():
     drop_table()
@@ -95,15 +122,22 @@ if __name__ == '__main__':
 
     load_project_data()    
     project_name = os.path.basename(os.path.normpath(project_dir))
+    
+    # Choose a class name for testing
+    class_name = "NumberUtils"
 
     sql_query = f"""
-        SELECT id FROM method WHERE project_name='{project_name}' AND class_name='NumberUtils';
+        SELECT id FROM method WHERE project_name='{project_name}' AND class_name='{class_name}';
     """
 
     method_ids = [x[0] for x in db.select(script=sql_query)]
-    method_ids = method_ids[:3] # Choose 3 methods for testing
+
+    if not method_ids:
+        raise Exception("Method ids cannot be None.")
+    if not isinstance(method_ids[0], str):
+        method_ids = [str(i) for i in method_ids]
+
+    method_ids = method_ids[:2] # Choose 2 methods for testing
 
     best_sol = ga(method_ids)
     
-    save_path = 'best.txt'  # TODO: Change save path
-    save_best(save_path, best_sol)

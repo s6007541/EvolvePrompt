@@ -59,7 +59,7 @@ def find_all_files(folder_path: str, method_ids: list = None):
     return file_list
 
 
-def start_generation(sql_query, multiprocess=True, repair=True, confirmed=False):
+def start_generation(method_ids, sql_query=None, multiprocess=False, repair=True, confirmed=False, evo_prompt=None):
     """
     Start the scope test.
     :param multiprocess: if it needs to
@@ -67,35 +67,17 @@ def start_generation(sql_query, multiprocess=True, repair=True, confirmed=False)
     :param sql_query:
     :return:
     """
-    match = re.search(r"project_name\s*=\s*'([\w-]*)'", sql_query)
-    if match:
-        project_name = match.group(1)
-        print(project_name)
-    else:
-        raise RuntimeError("One project at one time.")
-    # delete the old result
-    remove_single_test_output_dirs(get_project_abspath())
-
-    method_ids = [x[0] for x in db.select(script=sql_query)]
-    if not method_ids:
-        raise Exception("Method ids cannot be None.")
-    if not isinstance(method_ids[0], str):
-        method_ids = [str(i) for i in method_ids]
+    
     print("You are about to start the whole process of scope test.")
     print("The number of methods is ", len(method_ids), ".")
-    # print("The approximate cost will be", Fore.RED + "$", len(method_ids) * 0.0184 * test_number, ".", Style.RESET_ALL)
     record = "This is a record of a scope test.\n"
-    # if not confirmed:
-    #     confirm = input("Are you sure to start the scope test? (y/n): ")
-    #     if confirm != "y":
-    #         print("Scope test cancelled.")
-    #         return
-        
+            
     # Create the new folder
     result_path = create_dataset_result_folder("")
 
     record += "Result path: " + result_path + "\n"
-    record += 'SQL script: "' + sql_query + '"\n'
+    if sql_query:
+        record += 'SQL script: "' + sql_query + '"\n'
     record += "Included methods: " + str(method_ids) + "\n"
 
     record_path = os.path.join(result_path, "record.txt")
@@ -106,7 +88,7 @@ def start_generation(sql_query, multiprocess=True, repair=True, confirmed=False)
     # Find all the files
     source_dir = os.path.join(dataset_dir, "direction_1")
 
-    start_whole_process(source_dir, result_path, multiprocess=multiprocess, repair=repair)
+    start_whole_process(method_ids, source_dir, result_path, multiprocess=multiprocess, repair=repair, evo_prompt=evo_prompt)
     print("WHOLE PROCESS FINISHED")
     # Run accumulated tests
     project_path = os.path.abspath(project_dir)

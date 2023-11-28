@@ -51,9 +51,24 @@ def run():
         SELECT id FROM method WHERE project_name='{}';
     """.format(project_name)
 
+    match = re.search(r"project_name\s*=\s*'([\w-]*)'", sql_query)
+    if match:
+        project_name = match.group(1)
+        print(project_name)
+    else:
+        raise RuntimeError("One project at one time.")
+    # delete the old result
+    remove_single_test_output_dirs(get_project_abspath())
+
+    method_ids = [x[0] for x in db.select(script=sql_query)]
+    if not method_ids:
+        raise Exception("Method ids cannot be None.")
+    if not isinstance(method_ids[0], str):
+        method_ids = [str(i) for i in method_ids]
+
     # assert False
     # Start the whole process
-    start_generation(sql_query, multiprocess=False, repair=True, confirmed=False)
+    start_generation(method_ids, sql_query, multiprocess=False, repair=True, confirmed=False)
 
     # Export the result
     result_analysis()

@@ -585,8 +585,15 @@ def whole_process(test_num, base_name, base_dir, repair, submits, total, evo_pro
         shutil.rmtree(run_temp_dir)
     # assert False
 
+def get_method_id(file_name):
+    pattern = r'(\d+)%'
+    match = re.search(pattern, file_name)
+    if match :
+        method_id = match.group(1)
+        return method_id
+    return None
 
-def start_whole_process(source_dir, result_path, multiprocess=False, repair=True, evo_prompt=None):
+def start_whole_process(method_ids, source_dir, result_path, multiprocess=False, repair=True, evo_prompt=None):
     """
     Start repair process
     :param repair:  Whether to repair the code
@@ -599,7 +606,9 @@ def start_whole_process(source_dir, result_path, multiprocess=False, repair=True
     for root, _, files in os.walk(source_dir):
         for file in files:
             if file.endswith(".json"):
-                file_paths.append(os.path.join(root, file))
+                method_id = get_method_id(file)
+                if method_id in method_ids:
+                    file_paths.append(os.path.join(root, file))
     print('Start loading LLM into memory')
     submits = 0
     total = len(file_paths) * test_number

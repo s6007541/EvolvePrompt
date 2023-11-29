@@ -10,7 +10,8 @@ from parse_xml import result_analysis
 POPSIZE = 10
 NUM_GENERATION = 5
 NUM_METHODS = 16
-PROJECT_NAME = "Gson" # Gson or Cli
+PROJECT_NAME = "Cli" # Gson or Cli
+ALPHA = 100
 
 BASE_PROJECT_PATH = "../../" #NOTE: Gson and Cli already moved out. 
 BASE_CANDIDATE_PATH = "../evolve_candidates/"
@@ -37,7 +38,7 @@ class EvoPrompt:
         line_rates, branch_rates = results["line-rates"], results["branch-rates"]
         line_rate, branch_rate = get_coverage(line_rates, branch_rates)
 
-        self.fitness = 1/4*(success_test_rate + success_method_rate + line_rate + branch_rate)
+        self.fitness = 1/2*(success_test_rate + success_method_rate) + ALPHA*(line_rate + branch_rate)
 
         self.info.update({
             "result_path" : result_path,

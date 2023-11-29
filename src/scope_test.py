@@ -59,7 +59,7 @@ def find_all_files(folder_path: str, method_ids: list = None):
     return file_list
 
 
-def start_generation(method_ids, sql_query=None, multiprocess=False, repair=True, confirmed=False, evo_prompt=None):
+def start_generation(method_ids, sql_query=None, multiprocess=False, repair=True, confirmed=False, evo_prompt=None, evo_project_dir=None):
     """
     Start the scope test.
     :param multiprocess: if it needs to
@@ -91,7 +91,7 @@ def start_generation(method_ids, sql_query=None, multiprocess=False, repair=True
     start_whole_process(method_ids, source_dir, result_path, multiprocess=multiprocess, repair=repair, evo_prompt=evo_prompt)
     print("WHOLE PROCESS FINISHED")
     # Run accumulated tests
-    project_path = os.path.abspath(project_dir)
+    project_path = os.path.abspath(project_dir) if evo_project_dir == None else os.path.abspath(evo_project_dir)
     print("START ALL TESTS")
 
     Task.all_test(result_path, project_path)

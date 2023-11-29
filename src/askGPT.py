@@ -61,9 +61,9 @@ def ask_chatgpt(messages, save_path=None):
     if get_messages_tokens(messages) > MAX_PROMPT_TOKENS:
         return False
     openai.api_key = os.environ["OPENAI_API_KEY"]
-    max_try = 1
+    max_try = 2
     while max_try:
-        try: # change to our langauge model
+        try:
             llm_response = openai.ChatCompletion.create(messages=messages,
                                                       model=gpt_model,
                                                       temperature=gpt_temperature,
@@ -328,7 +328,7 @@ def extract_code(string):
     return has_code, extracted_code, has_syntactic_error
 
 
-def extract_and_run(input_string, output_path, class_name, method_id, test_num, project_name, package):
+def extract_and_run(input_string, output_path, class_name, method_id, test_num, project_name, package, evo_project_dir=None):
     """
     Extract the code and run it
     :param project_name:
@@ -360,7 +360,7 @@ def extract_and_run(input_string, output_path, class_name, method_id, test_num, 
 
     # run test
     response_dir = os.path.abspath(os.path.dirname(output_path))
-    target_dir = os.path.abspath(project_dir)
+    target_dir = os.path.abspath(project_dir) if evo_project_dir == None else evo_project_dir 
     Task.test(response_dir, target_dir)
 
     # 3. Read the result
@@ -391,7 +391,7 @@ def remain_prompt_tokens(messages):
     return MAX_PROMPT_TOKENS - get_messages_tokens(messages)
 
 
-def whole_process(test_num, base_name, base_dir, repair, submits, total, evo_prompt=None):
+def whole_process(test_num, base_name, base_dir, repair, submits, total, evo_prompt=None, evo_project_dir=None):
     """
     Multiprocess version of start_generation
     :param test_num:
@@ -533,7 +533,7 @@ def whole_process(test_num, base_name, base_dir, repair, submits, total, evo_pro
             # extract the test and save the result in raw_file_name
             test_passed, fatal_error = extract_and_run(llm_response, raw_file_name, class_name, method_id, test_num,
                                                        project_name,
-                                                       package)
+                                                       package, evo_project_dir)
 
             if test_passed:
                 print(progress, Fore.GREEN + method_id, "test_" + str(test_num), "steps", steps, "rounds", rounds,

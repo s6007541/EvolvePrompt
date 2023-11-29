@@ -15,6 +15,7 @@ PROJECT_NAME = "Gson" # Gson or Cli
 BASE_PROJECT_PATH = "../../" #NOTE: Gson and Cli already moved out. 
 BASE_CANDIDATE_PATH = "../evolve_candidates/"
 SAVE_PATH = os.path.join("../prompt/", "evoprompt")
+evo_project_dir = os.path.join(BASE_PROJECT_PATH, PROJECT_NAME)
 
 if not os.path.exists(SAVE_PATH):
     os.makedirs(SAVE_PATH)
@@ -23,27 +24,49 @@ class EvoPrompt:
     def __init__(self, prompt, method_ids):
         self.prompt = prompt
         self.method_ids = method_ids
-        self.result_path = None
-
-    def evaluate(self):
-        self.fitness = fitness(self, method_ids)
+        self.info = {
+            "result_path" : None,
+            "prompt" : prompt
+        }
     
-    def __str__(self):
-        return self.prompt
+    def evaluate(self):
+        result_path = start_generation(self.method_ids, multiprocess=False, repair=False, evo_prompt=self.prompt, evo_project_dir=evo_project_dir)
+        results = result_analysis(result_path)
+        success_test_rate = results['correct-tests'] / results['all-tests']  # Fitness = Correct / Attempts
+        success_method_rate = results["correct-methods"] / NUM_METHODS
+        line_rates, branch_rates = results["line-rates"], results["branch-rates"]
+        line_rate, branch_rate = get_coverage(line_rates, branch_rates)
 
-def fitness(sol, method_ids):
-    result_path = start_generation(method_ids, multiprocess=False, repair=False, evo_prompt=sol.prompt)
-    sol.result_path = result_path
-    results = result_analysis(result_path)
-    score = results['correct-tests'] / results['all-tests']  # Fitness = Correct / Attempts
-    return score
+        self.fitness = 1/4*(success_test_rate + success_method_rate + line_rate + branch_rate)
+
+        self.info.update({
+            "result_path" : result_path,
+            "success_method_rate" : success_method_rate,
+            "success_test_rate" : success_test_rate,
+            "line_rate" : line_rate,
+            "branch_rate" : branch_rate,
+            "fitness" : self.fitness
+        })
+
+    def __str__(self):
+        return json.dumps(self.info, indent=2)
+
+
+def get_coverage(line_rates, branch_rates):
+    line_rate, branch_rate = 0, 0
+    if len(line_rates):
+        line_rate = sum(line_rates) / len(line_rates)
+    if len(branch_rates):
+        branch_rate = sum(branch_rates) / len(branch_rates)
+    return line_rate, branch_rate
+
 
 def crossover_and_mutate(p1, p2, method_ids):
     print(Fore.GREEN + "*"*20 + "CROSSOVER AND MUTATION" + "*"*20)
     context = {"prompt_1": p1.prompt,  "prompt_2" : p2.prompt}
     messages = generate_messages(TEMPLATE_GA, context)
-    # llm_response = ask_llm(messages)
-    llm_response = ask_chatgpt(messages)
+    llm_response = ask_llm(messages)
+    # llm_response = ask_chatgpt(messages)
     if llm_response:
         try:
             new_prompt = re.search(r'<prompt>(.*?)</prompt>', llm_response, re.DOTALL).group(1).strip()
@@ -76,15 +99,15 @@ def delete_previous_log():
                 print(Fore.RED + f"File '{file}' deleted.", Style.RESET_ALL)
 
 def clean_scope_test(population, best_sol_path):
-    #TODO: only save scope test for best prompt, delete others
+    #NOTE: only save scope test for best prompt, delete others
     for idv in population:
-        if idv.result_path == best_sol_path or idv.result_path == None:
+        dir_path = idv.info["result_path"]
+        if dir_path == best_sol_path or dir_path == None:
             continue
         else:
-            dir_path = idv.result_path
             if os.path.exists(dir_path):
                 shutil.rmtree(dir_path)
-                print(Fore.RED + f"Remove scope test path: '{idv.result_path}'", Style.RESET_ALL)
+                print(Fore.RED + f"Remove scope test path: '{dir_path}'", Style.RESET_ALL)
 
 def ga(method_ids, pop_size=POPSIZE, generations=NUM_GENERATION):
     delete_previous_log()
@@ -115,27 +138,21 @@ def ga(method_ids, pop_size=POPSIZE, generations=NUM_GENERATION):
         
         best_solution = population[0]
         best_fitness = best_solution.fitness
-        print(Fore.YELLOW + f"GENERATION {i + 1}: fitness = {best_fitness} \n", best_solution, Style.RESET_ALL)
+        print(Fore.YELLOW + f"GENERATION {i + 1}: \n", best_solution, Style.RESET_ALL)
         file_name = f"generation_{i+1}.json"
-        save_best(file_name, best_solution.prompt, best_fitness)
-        clean_scope_test(extended_population, best_solution.result_path)
+        save_best(file_name, best_solution)
+        clean_scope_test(extended_population, best_solution.info["result_path"])
     return best_solution
 
-def save_best(file_name, prompt, fitness_score):
+def save_best(file_name, best_solution):
     file_path = os.path.join(SAVE_PATH, file_name)
-    dct = {
-        "prompt": prompt,
-        "project_name" : PROJECT_NAME,
-        "fitness" : fitness_score
-    }
     with open(file_path, 'w') as f:
-        json.dump(dct, f, indent=2)
+        json.dump(best_solution.info, f, indent=2)
 
 def load_project_data():
-    current_prj_dir = os.path.join(BASE_PROJECT_PATH, PROJECT_NAME)
     drop_table()
     create_table()
-    info_path = Task.parse(current_prj_dir)
+    info_path = Task.parse(evo_project_dir)
     parse_data(info_path)
     clear_dataset()
     export_data()
@@ -152,6 +169,7 @@ if __name__ == '__main__':
         print("attached")
 
     load_project_data()    
+    remove_single_test_output_dirs(os.path.abspath(evo_project_dir))
 
     method_ids = []
     file_candidate = os.path.join(BASE_CANDIDATE_PATH, PROJECT_NAME.lower() + ".txt")

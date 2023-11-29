@@ -93,9 +93,14 @@ def result_analysis(result_path=None):
     repair_success_cnt = 0
     repair_failed_cnt = 0
     project_name = ""
+    success_method = 0
+    line_rates = []
+    branch_rates = []
+
     repair_rounds = {i: 0 for i in range(2, max_rounds + 1)}
     for name in os.listdir(result_path):
         directory_name = os.path.join(result_path, name)
+        is_method_sucess = False
         if os.path.isdir(directory_name):
             if not project_name:
                 project_name = parse_file_name(directory_name)[1]
@@ -122,6 +127,11 @@ def result_analysis(result_path=None):
                     coverage_json = os.path.join(temp_dir, "coverage.json")
                     if os.path.exists(coverage_json):
                         success_cnt_json += 1
+                        is_method_sucess = True
+                        with open(coverage_path, "r") as f:
+                            coverage = json.load(f)
+                            line_rates.append(float(coverage["line-rate"]))
+                            branch_rates.append(float(coverage["branch-rate"]))
 
                     json_file_number = len(os.listdir(sub_dir)) - 1
                     compile_error_path = os.path.join(temp_dir, "compile_error.txt")
@@ -141,6 +151,7 @@ def result_analysis(result_path=None):
                         fail_cnt += 1
                         if json_file_number > 3:
                             repair_failed_cnt += 1
+        if (is_method_sucess): success_method += 1        
     print("Project name:        " + str(project_name))
     print("All files:           " + str(all_files_cnt))
     print("All java files:      " + str(all_java_files_cnt))
@@ -160,6 +171,9 @@ def result_analysis(result_path=None):
     return {
         "all-tests":        all_files_cnt,
         "correct-tests":    success_cnt,
+        "correct-methods" : success_method, 
+        "line-rates" :       line_rates,
+        "branch-rates":      branch_rates
     }
 
 

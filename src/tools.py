@@ -135,12 +135,13 @@ def get_date_string(directory_name):
     return directory_name.split('%')[1]
 
 
-def find_result_in_projects():
+def find_result_in_projects(evo_project_dir=None):
     """
     Find the new directory.
     :return: The new directory.
     """
-    all_results = [x for x in os.listdir(project_dir) if '%' in x]
+    curr_project = project_dir if evo_project_dir == None else evo_project_dir
+    all_results = [x for x in os.listdir(curr_project) if '%' in x]
     all_results = sorted(all_results, key=get_date_string)
     return os.path.join(result_dir, all_results[-1])
 

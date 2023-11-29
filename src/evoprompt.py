@@ -42,7 +42,8 @@ def crossover_and_mutate(p1, p2, method_ids):
     print(Fore.GREEN + "*"*20 + "CROSSOVER AND MUTATION" + "*"*20)
     context = {"prompt_1": p1.prompt,  "prompt_2" : p2.prompt}
     messages = generate_messages(TEMPLATE_GA, context)
-    llm_response = ask_llm(messages)
+    # llm_response = ask_llm(messages)
+    llm_response = ask_chatgpt(messages)
     if llm_response:
         try:
             new_prompt = re.search(r'<prompt>(.*?)</prompt>', llm_response, re.DOTALL).group(1).strip()

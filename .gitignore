@@ -24,3 +24,4 @@ setup.py
 *.xml
 *.ser
 .config/config_sorn.ini
+projects_dataset/*

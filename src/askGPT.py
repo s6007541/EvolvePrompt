@@ -593,7 +593,7 @@ def get_method_id(file_name):
         return method_id
     return None
 
-def start_whole_process(method_ids, source_dir, result_path, multiprocess=False, repair=True, evo_prompt=None, cand_evolve = False):
+def start_whole_process(method_ids, source_dir, result_path, multiprocess=False, repair=True, evo_prompt=None):
     """
     Start repair process
     :param repair:  Whether to repair the code
@@ -609,28 +609,6 @@ def start_whole_process(method_ids, source_dir, result_path, multiprocess=False,
                 method_id = get_method_id(file)
                 if method_id in method_ids:
                     file_paths.append(os.path.join(root, file))
-    
-    # filter file paths if evo_prompt to only file paths are candidates
-    if cand_evolve:
-        filtered_file_paths = []
-        with open("./evolve_candidates/gson_16.txt", "r") as cand_f:
-            lines = cand_f.readlines()
-            lines = [l.strip() for l in lines]
-        
-        for file_path in file_paths:
-            flag = False
-            for line in lines:
-                if line in file_path:
-                    flag = True
-                    break
-            
-            if flag:
-                filtered_file_paths += [file_path]
-        
-        file_paths = filtered_file_paths
-                
-    
-            
     
     print('Start loading LLM into memory')
     submits = 0

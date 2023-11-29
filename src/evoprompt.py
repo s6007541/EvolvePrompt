@@ -9,9 +9,13 @@ from parse_xml import result_analysis
 #NOTE: Hyperparameters
 POPSIZE = 10
 NUM_GENERATION = 5
+NUM_METHODS = 16
+PROJECT_NAME = "Gson" # Gson or Cli
 
-BASE_PATH = "../prompt/"
-SAVE_PATH = os.path.join(BASE_PATH, "evoprompt")
+BASE_PROJECT_PATH = "../../" #NOTE: Gson and Cli already moved out. 
+BASE_CANDIDATE_PATH = "../evolve_candidates/"
+SAVE_PATH = os.path.join("../prompt/", "evoprompt")
+
 if not os.path.exists(SAVE_PATH):
     os.makedirs(SAVE_PATH)
 
@@ -19,14 +23,17 @@ class EvoPrompt:
     def __init__(self, prompt, method_ids):
         self.prompt = prompt
         self.method_ids = method_ids
+        self.result_path = None
+
     def evaluate(self):
-        self.fitness = fitness(self.prompt, method_ids)
-        
+        self.fitness = fitness(self, method_ids)
+    
     def __str__(self):
         return self.prompt
 
-def fitness(prompt, method_ids):
-    result_path = start_generation(method_ids, multiprocess=False, repair=False, evo_prompt=prompt, cand_evolve=True)
+def fitness(sol, method_ids):
+    result_path = start_generation(method_ids, multiprocess=False, repair=False, evo_prompt=sol.prompt)
+    sol.result_path = result_path
     results = result_analysis(result_path)
     score = results['correct-tests'] / results['all-tests']  # Fitness = Correct / Attempts
     return score
@@ -40,11 +47,11 @@ def crossover_and_mutate(p1, p2, method_ids):
         try:
             new_prompt = re.search(r'<prompt>(.*?)</prompt>', llm_response, re.DOTALL).group(1).strip()
         except:
-            # TODO: handle case when llm_response does not contains <prompt> and </prompt>
-            new_prompt = p1.prompt
+            print(Fore.RED + "LLM response does not contains <prompt> and </prompt>", Style.RESET_ALL)
+            return p1
     else: 
-        # TODO: handle case when llm_response return None
-        new_prompt = p1.prompt
+        print(Fore.RED, "LLM response return None", Style.RESET_ALL)
+        return p1
         
     o = EvoPrompt(new_prompt, method_ids)
     o.evaluate()
@@ -63,12 +70,20 @@ def delete_previous_log():
         file_list = os.listdir(SAVE_PATH)
         for file in file_list:
             file_path = os.path.join(SAVE_PATH, file)
-            try:
-                if os.path.isfile(file_path):
-                    os.remove(file_path)
-                    print(f"File '{file}' deleted.")
-            except Exception as e:
-                print(f"Error deleting file '{file}': {e}")
+            if os.path.isfile(file_path):
+                os.remove(file_path)
+                print(Fore.RED + f"File '{file}' deleted.", Style.RESET_ALL)
+
+def clean_scope_test(population, best_sol_path):
+    #TODO: only save scope test for best prompt, delete others
+    for idv in population:
+        if idv.result_path == best_sol_path or idv.result_path == None:
+            continue
+        else:
+            dir_path = idv.result_path
+            if os.path.exists(dir_path):
+                shutil.rmtree(dir_path)
+                print(Fore.RED + f"Remove scope test path: '{idv.result_path}'", Style.RESET_ALL)
 
 def ga(method_ids, pop_size=POPSIZE, generations=NUM_GENERATION):
     delete_previous_log()
@@ -94,23 +109,32 @@ def ga(method_ids, pop_size=POPSIZE, generations=NUM_GENERATION):
         # now we have the full next gen
         population.extend(next_gen)
         population = sorted(population, key=lambda x: x.fitness, reverse=True)
+        extended_population = copy.deepcopy(population)
         population = population[:pop_size]
         
         best_solution = population[0]
-        print(Fore.YELLOW + f"GENERATION {i + 1}: \n", best_solution, Style.RESET_ALL)
-        file_name = f"generation_{i+1}.jinja2"
-        save_best(file_name, best_solution)
+        best_fitness = best_solution.fitness
+        print(Fore.YELLOW + f"GENERATION {i + 1}: fitness = {best_fitness} \n", best_solution, Style.RESET_ALL)
+        file_name = f"generation_{i+1}.json"
+        save_best(file_name, best_solution.prompt, best_fitness)
+        clean_scope_test(extended_population, best_solution.result_path)
     return best_solution
 
-def save_best(file_name, solution):
+def save_best(file_name, prompt, fitness_score):
     file_path = os.path.join(SAVE_PATH, file_name)
+    dct = {
+        "prompt": prompt,
+        "project_name" : PROJECT_NAME,
+        "fitness" : fitness_score
+    }
     with open(file_path, 'w') as f:
-        f.write(str(solution))
+        json.dump(dct, f, indent=2)
 
 def load_project_data():
+    current_prj_dir = os.path.join(BASE_PROJECT_PATH, PROJECT_NAME)
     drop_table()
     create_table()
-    info_path = Task.parse(project_dir)
+    info_path = Task.parse(current_prj_dir)
     parse_data(info_path)
     clear_dataset()
     export_data()
@@ -127,18 +151,16 @@ if __name__ == '__main__':
         print("attached")
 
     load_project_data()    
-    project_name = os.path.basename(os.path.normpath(project_dir))
+
+    method_ids = []
+    file_candidate = os.path.join(BASE_CANDIDATE_PATH, PROJECT_NAME.lower() + ".txt")
+    with open(file_candidate, "r") as f:
+        lines = f.readlines()
+        for line in lines:
+            id = line.split("%")[0]
+            method_ids.append(id)
     
-    sql_query = f"""
-        SELECT id FROM method WHERE project_name='{project_name}';
-    """
-
-    method_ids = [x[0] for x in db.select(script=sql_query)]
-
-    if not method_ids:
-        raise Exception("Method ids cannot be None.")
-    if not isinstance(method_ids[0], str):
-        method_ids = [str(i) for i in method_ids]
+    method_ids = method_ids[:NUM_METHODS] # only pick 16 methods
 
     best_sol = ga(method_ids)
     

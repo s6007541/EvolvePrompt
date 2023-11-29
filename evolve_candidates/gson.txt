@@ -26,4 +26,4 @@
 492%Gson%LazilyParsedNumber%longValue%d1
 501%Gson%MalformedJsonException%MalformedJsonException%d1
 514%Gson%JsonWriter%setLenient%d1
-515%Gson%JsonWriter%isLenient%d1
+515%G`son%JsonWriter%isLenient%d1

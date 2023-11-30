@@ -10,7 +10,7 @@ from parse_xml import result_analysis
 POPSIZE = 10
 NUM_GENERATION = 5
 NUM_METHODS = 16
-PROJECT_NAME = "Cli" # Gson or Cli
+PROJECT_NAME = "Lang" # Gson or Cli
 ALPHA = 100
 
 BASE_PROJECT_PATH = "../../" #NOTE: Gson and Cli already moved out. 
@@ -66,8 +66,8 @@ def crossover_and_mutate(p1, p2, method_ids):
     print(Fore.GREEN + "*"*20 + "CROSSOVER AND MUTATION" + "*"*20)
     context = {"prompt_1": p1.prompt,  "prompt_2" : p2.prompt}
     messages = generate_messages(TEMPLATE_GA, context)
-    llm_response = ask_llm(messages)
-    # llm_response = ask_chatgpt(messages)
+    # llm_response = ask_llm(messages)
+    llm_response = ask_chatgpt(messages)
     if llm_response:
         try:
             new_prompt = re.search(r'<prompt>(.*?)</prompt>', llm_response, re.DOTALL).group(1).strip()
@@ -118,6 +118,7 @@ def ga(method_ids, pop_size=POPSIZE, generations=NUM_GENERATION):
         new_sol = EvoPrompt(prompt, method_ids)
         new_sol.evaluate()
         population.append(new_sol)
+    save_population("initial_all.json", population)
 
     for i in range(generations):
         next_gen = []
@@ -142,8 +143,16 @@ def ga(method_ids, pop_size=POPSIZE, generations=NUM_GENERATION):
         print(Fore.YELLOW + f"GENERATION {i + 1}: \n", best_solution, Style.RESET_ALL)
         file_name = f"generation_{i+1}.json"
         save_best(file_name, best_solution)
+        file_name_all = f"generation_{i+1}_all.json"
+        save_population(file_name_all, population)
         clean_scope_test(extended_population, best_solution.info["result_path"])
     return best_solution
+
+def save_population(file_name, population):
+    file_path = os.path.join(SAVE_PATH, file_name)
+    population_info = [s.info for s in population]
+    with open(file_path, 'w') as f:
+        json.dump(population_info, f, indent=2)
 
 def save_best(file_name, best_solution):
     file_path = os.path.join(SAVE_PATH, file_name)

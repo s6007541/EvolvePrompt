@@ -1,0 +1,16 @@
+6%Lang%NumberUtils%toFloat%d1
+10%Lang%NumberUtils%toDouble%d1
+13%Lang%NumberUtils%toByte%d1
+16%Lang%NumberUtils%toScaledBigDecimal%d1
+18%Lang%NumberUtils%toScaledBigDecimal%d1
+20%Lang%NumberUtils%toScaledBigDecimal%d1
+28%Lang%NumberUtils%createFloat%d1
+29%Lang%NumberUtils%createDouble%d1
+30%Lang%NumberUtils%createInteger%d1
+31%Lang%NumberUtils%createLong%d1
+32%Lang%NumberUtils%createBigInteger%d1
+37%Lang%NumberUtils%min%d1
+46%Lang%NumberUtils%validateArray%d1
+57%Lang%NumberUtils%max%d1
+58%Lang%NumberUtils%max%d1
+62%Lang%NumberUtils%isParsable%d1

@@ -11,7 +11,7 @@ POPSIZE = 10
 NUM_GENERATION = 5
 NUM_METHODS = 16
 PROJECT_NAME = "Lang" # Gson or Cli
-ALPHA = 100
+ALPHA = 20
 
 BASE_PROJECT_PATH = "../../" #NOTE: Gson and Cli already moved out. 
 BASE_CANDIDATE_PATH = "../evolve_candidates/"

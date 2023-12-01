@@ -128,7 +128,7 @@ def result_analysis(result_path=None):
                     if os.path.exists(coverage_json):
                         success_cnt_json += 1
                         is_method_sucess = True
-                        with open(coverage_path, "r") as f:
+                        with open(coverage_json, "r") as f:
                             coverage = json.load(f)
                             line_rates.append(float(coverage["line-rate"]))
                             branch_rates.append(float(coverage["branch-rate"]))

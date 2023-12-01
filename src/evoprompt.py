@@ -13,7 +13,7 @@ NUM_METHODS = 16
 PROJECT_NAME = "Lang" # Gson or Cli
 ALPHA = 20
 
-BASE_PROJECT_PATH = "../../" #NOTE: Gson and Cli already moved out. 
+BASE_PROJECT_PATH = "../../projects_dataset/" #NOTE: Gson and Cli already moved out. 
 BASE_CANDIDATE_PATH = "../evolve_candidates/"
 SAVE_PATH = os.path.join("../prompt/", "evoprompt")
 evo_project_dir = os.path.join(BASE_PROJECT_PATH, PROJECT_NAME)
@@ -38,7 +38,7 @@ class EvoPrompt:
         line_rates, branch_rates = results["line-rates"], results["branch-rates"]
         line_rate, branch_rate = get_coverage(line_rates, branch_rates)
 
-        self.fitness = 1/2*(success_test_rate + success_method_rate) + ALPHA*(line_rate + branch_rate)
+        self.fitness = (success_test_rate + success_method_rate) + (line_rate + branch_rate) / 4
 
         self.info.update({
             "result_path" : result_path,
@@ -166,6 +166,31 @@ def load_project_data():
     parse_data(info_path)
     clear_dataset()
     export_data()
+    file_candidate = os.path.join(BASE_CANDIDATE_PATH, PROJECT_NAME.lower() + ".txt")
+    method_tuples = []
+    with open(file_candidate, "r") as f:
+        lines = f.readlines()
+        for line in lines:
+            method_infos = line.split("%")
+            method_tuples.append((method_infos[-3], method_infos[-2]))
+    
+    # delete the old result
+    remove_single_test_output_dirs(os.path.abspath(evo_project_dir))
+    method_ids = []
+    for method_tuple in method_tuples:
+        
+        sql_query = f"""
+            SELECT id FROM method WHERE project_name='{PROJECT_NAME}' AND class_name='{method_tuple[0]}' AND method_name='{method_tuple[1]}';
+        """
+
+        method_ids.append(db.select(script=sql_query)[0][0])
+    
+    if not method_ids:
+        raise Exception("Method ids cannot be None.")
+    if not isinstance(method_ids[0], str):
+        method_ids = [str(i) for i in method_ids]
+        
+    return method_ids
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Process some integers.')
@@ -178,16 +203,7 @@ if __name__ == '__main__':
         debugpy.wait_for_client()
         print("attached")
 
-    load_project_data()    
-    remove_single_test_output_dirs(os.path.abspath(evo_project_dir))
-
-    method_ids = []
-    file_candidate = os.path.join(BASE_CANDIDATE_PATH, PROJECT_NAME.lower() + ".txt")
-    with open(file_candidate, "r") as f:
-        lines = f.readlines()
-        for line in lines:
-            id = line.split("%")[0]
-            method_ids.append(id)
+    method_ids = load_project_data() 
     
     method_ids = method_ids[:NUM_METHODS] # only pick 16 methods
 

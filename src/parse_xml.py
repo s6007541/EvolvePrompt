@@ -128,10 +128,6 @@ def result_analysis(result_path=None):
                     if os.path.exists(coverage_json):
                         success_cnt_json += 1
                         is_method_sucess = True
-                        with open(coverage_json, "r") as f:
-                            coverage = json.load(f)
-                            line_rates.append(float(coverage["line-rate"]))
-                            branch_rates.append(float(coverage["branch-rate"]))
 
                     json_file_number = len(os.listdir(sub_dir)) - 1
                     compile_error_path = os.path.join(temp_dir, "compile_error.txt")
@@ -142,6 +138,15 @@ def result_analysis(result_path=None):
                         runtime_error_cnt += 1
                     if os.path.exists(coverage_path):
                         success_cnt += 1
+                        with open(coverage_path, "r") as f:
+                            soup = BeautifulSoup(f, "xml")
+                            method_name = name.split("%")[-2]
+                            coverage_entry = soup.find('method', {'name': method_name, 'line-rate': lambda x: float(x) > 0})
+                            if coverage_entry:
+                                line_rate = float(coverage_entry.attrs["line-rate"])
+                                branch_rate = float(coverage_entry.attrs["branch-rate"])
+                                line_rates.append(line_rate)
+                                branch_rates.append(branch_rate)
                         if json_file_number > 3:
                             repair_success_cnt += 1
                             repair_rounds[math.ceil(json_file_number / 3)] += 1

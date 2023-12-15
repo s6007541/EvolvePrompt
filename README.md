@@ -1,29 +1,40 @@
-# ChatUniTest: A ChatGPT-based unit test generation tool
+# Evolving Prompt with Genetic Algorithm Yields Powerful Instruction for Unit Test Generation
 
-ChatUniTest can automatically generate unit tests for an entire Maven project in three steps.
+> A final project of CS454 AI Based Software Engineering, KAIST (Fall 2023)
+> 
+> Contributors: Pawit Wangsuekul, Hai-Nam V. Cao, Sorn Chottananurak, Thanh-Long V. Le (Team 7)
 
+Built on top of https://github.com/ZJU-ACES-ISE/ChatUniTest
 
 ![Alt Text](demo.gif)
 
+## Abstract
 
+Unit testing is a crucial aspect of software engineering, demanding considerable time and effort. To address this challenge, various automated test generation tools have been developed, such as ChatUniTest — a ChatGPT-based system developed under the Generation-Validation-Repair framework. Despite its utility, ChatUniTest's performance is hampered by the reliance on manually crafted system prompts to initiate the test generation process. Drawing inspiration from recent researches in prompt evolution, we introduce EvolveUniTest, an adaptation of ChatUniTest with EvolvePrompt, a framework employing genetic algorithms for prompt evolution. EvolvePrompt initiates from a population of system prompts, including those manually designed for ChatUniTest, iteratively generating new prompts using a large language model and enhancing the population based on a development set. Leveraging the most optimized prompt from this evolutionary process, EvolveUniTest surpasses ChatUniTest in the quality and performance of generated unit tests. It achieves higher correctness percentages, increased branch and line coverage, and improved focal method coverage.
 
-## :bomb: News!!!
+## Related Work
+- [ChatUniTest: a ChatGPT-based automated unit test generation tool](https://arxiv.org/abs/2305.04764)
+- [Connecting Large Language Models with Evolutionary Algorithms Yields Powerful Prompt Optimizers](https://arxiv.org/abs/2309.08532)
 
- We have migrated the code to the Java and implementing the [Maven plugin](https://github.com/ZJU-ACES-ISE/chatunitest-maven-plugin) and [IDEA plugin](https://github.com/ZJU-ACES-ISE/ChatUniTest_IDEA_Plugin). Please have a try:heart_eyes:.
+## Usage
 
-## Step 1 : installation
+### Step 1: Installation
 First make sure you run this program in Mac or Linux system with mysql installed.
 
 Follow the instructions below to install the project:
 
-1. Clone the project: `git clone https://github.com/ZJU-ACES-ISE/ChatUniTest.git`
-2. Enter the project directory: `cd ChatUniTest`
+1. Clone the project: `git clone https://github.com/s6007541/EvolvePrompt.git`
+2. Enter the project directory: `cd EvolvePrompt`
 3. Install the requirements: `pip install -r requirements.txt`
 
-## Step 2: configuration
+### Step 2: Download the LLM
+We use CodeLlama-7b-Instruct for unit test generation in this project. Follow the instruction given in [the offical CodeLlama repository](https://github.com/facebookresearch/codellama?tab=readme-ov-file#download) to download it.
 
-An example configuration file is provided at `config/config_example.ini`. Copy this file and rename it to `config.ini`
-to ensure your data's security.
+### Step 3: Configuration
+
+The configuration files are provided at `.config/config_evoprompt.ini` and `.config/config_chatunitest.ini`.
+
+TODO: Modify this part and add `.config/config_evoprompt.ini` and `.config/config_chatunitest.ini`
 
 You need to alter few options:
 
@@ -96,12 +107,36 @@ gcc -o java-grammar.so -shared src/parser.c -I./src
 GRAMMAR_FILE = path/to/java-grammar.so
 ```
 
-## Step 3: Run
+### Step 4: Run
 
-1. Enter the source code directory: `cd src`
-2. Run the Python script: `python run.py`
+#### EvolveUniTest (Our Project)
 
-Then, wait for the process to finish. The result is saved in the result directory.
+First, run the prompt evolution script with the following steps.
+
+1. Rename `.config/config_evoprompt.ini` to `.config/config.ini`
+2. Enter the source code directory: `cd src`
+3. On one terminal, launch a flask server that hosts the LLM: `torchrun server.py`
+4. On another terminal, run the Python script for prompt evolution: `python evoprompt.py`
+
+Then, wait for the process to finish. The results, including the best prompt and all prompts in each generation of the genetic algorithm, are saved in `prompt/evoprompt`. Next, follow the steps below to run unit test generation.
+
+1. Copy the prompt from `prompt/evoprompt/generation_<NUM_GENERATIONS>` to `prompt/d1_4_system.jinja2` and `prompt/d3_4_system.jinja2`. Note that `<NUM_GENERATIONS>` is the number of generations in the prompt evolution task (default: 5). Backup the original `prompt/d1_4_system.jinja2` and `prompt/d3_4_system.jinja2` files.
+2. Rename `.config/config_chatunitest.ini` to `.config/config.ini`
+3. Enter the source code directory: `cd src`
+4. On one terminal, launch a flask server that hosts the LLM: `torchrun server.py`
+5. On another terminal, run the Python script for unit test generation: `python run.py`
+
+Wait until the process finishes. The result is saved in the `result` directory.
+
+#### ChatUniTest Baseline
+
+To run the ChatUniTest baseline with CodeLlama-7b-Instruct, ignore [Prompt Evolution](#prompt-evolution) and follow the steps below.
+
+1. If you run [EvolveUniTest](#evolveunitest-our-project) before, restore the original `prompt/d1_4_system.jinja2` and `prompt/d3_4_system.jinja2` files.
+2. Rename `.config/config_chatunitest.ini` to `.config/config.ini`
+3. Enter the source code directory: `cd src`
+4. On one terminal, launch a flask server that hosts the LLM: `torchrun server.py`
+5. On another terminal, run the Python script for unit test generation: `python run.py`
 
 ## Structure
 
@@ -109,7 +144,7 @@ Then, wait for the process to finish. The result is saved in the result director
 
 This directory stores the config files.
 
-The `config_example.ini` is for demonstration only. Be sure to copy it and rename it to `config.ini`.
+The `config_evoprompt.ini` and `config_chatunitest.ini` are for the prompt evolution task and the unit test generation task. Be sure to copy the corresponding file and rename it to `config.ini` when running each task.
 
 ### dataset
 
@@ -121,6 +156,10 @@ dataset directory includes `direction_1`, `direction_3`, and `raw_data`.
 2. `direction_3` contains the context with dependencies.
 3. `raw_data` contains all the information about focal methods.
 
+### evolve_candidate
+
+This directory stores the text files that contain the lists of candidate methods in each project that are selected as the development set for prompt evolution.
+
 ### prompt
 
 This directory stores the prompt templates. Prompts should be in the jinja2 template format.
@@ -130,6 +169,8 @@ If you need to add a new prompt, follow these instructions:
 2. If you need to create system prompt template, the format is `xxxx_system.jinja2`, the program will automatically find
    the system prompt template.
 3. Ensure you've changed the template name in the configuration file.
+
+This directory also contains the subdirectory `evoprompt`, which stores the result of prompt evolution.
 
 ### result
 
@@ -149,6 +190,8 @@ This is the directory that stores the source code.
 
 ## MISC
 
+TODO
+
 Our work has been submitted to arXiv. Check it out here: [ChatUniTest](https://arxiv.org/abs/2305.04764).
 
 ```
@@ -162,14 +205,8 @@ Our work has been submitted to arXiv. Check it out here: [ChatUniTest](https://a
 }
 ```
 
-## Contact us
-
-
-If you have any questions or would like to inquire about our experimental results, please feel free to contact us via email. The email addresses of the authors are as follows:
-
-1. Corresponding author: `zjuzhichen AT zju.edu.cn`
-2. Author: `xiezhuokui AT zju.edu.cn`, `yh_ch AT zju.edu.cn`
-
 ## License
+
+TODO
 
 The project is licensed under the [MIT License](https://opensource.org/licenses/MIT).

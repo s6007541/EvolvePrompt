@@ -34,27 +34,26 @@ We use CodeLlama-7b-Instruct for unit test generation in this project. Follow th
 
 The configuration files are provided at `.config/config_evoprompt.ini` and `.config/config_chatunitest.ini`.
 
-TODO: Modify this part and add `.config/config_evoprompt.ini` and `.config/config_chatunitest.ini`
-
 You need to alter few options:
 
 1. `project_dir`: path to compiled Java project. (The path must be in English)
-2. `api_keys`
-3. `host`, `port`, `database`, `user`, `password`
-4. `GRAMMAR_FILE`: tree-sitter java grammar file.
+2. `model_path`, `tokenizer_path`
+3. `api_keys`
+4. `host`, `port`, `database`, `user`, `password`
+5. `GRAMMAR_FILE`: tree-sitter java grammar file.
 
 The options are explained as follows:
 
 ```ini
 [DEFAULT]
-test_number = 6 #The number of attempts to generate for each focal method.
+test_number = 3 #The number of attempts to generate for each focal method.
 process_number = 32 # The number of processes to use when generating tests.
 dataset_dir = ../dataset/ # Dataset directory, no need to change.
 result_dir = ../result/ # Result directory, no need to change.
 project_dir = ../Chart/ # compiled Java project directory.
-max_rounds = 6 # The maximum number of rounds to generate one test. One round for generation, 5 rounds for repairing the test.
+max_rounds = 2 # The maximum number of rounds to generate one test. One round for generation, 5 rounds for repairing the test.
 TIMEOUT = 30 # The timeout for each test.
-MAX_PROMPT_TOKENS = 2700 # The maximum number of tokens for each prompt.
+MAX_PROMPT_TOKENS = 3072 # The maximum number of tokens for each prompt.
 MIN_ERROR_TOKENS = 500 # The minimum number of tokens for each error prompt.
 PROMPT_TEMPLATE_NO_DEPS = d1_4.jinja2 # The prompt template for the method with no dependencies.
 PROMPT_TEMPLATE_DEPS = d3_4.jinja2 # The prompt template for the method with dependencies.
@@ -70,12 +69,21 @@ JACOCO_AGENT = ./dependencies/jacoco/jacocoagent.jar
 JACOCO_CLI = ./dependencies/jacoco/jacococli.jar
 REPORT_FORMAT = xml # The coverage report format.
 
+[llm]
+model_path = path/to/model # The path to the LLM (CodeLlama-7b-Instruct) you donwloaded
+tokenizer_path = path/to/tokenizer # The path to the tokenizer of the LLM
+max_seq_len = 2048 # Parameters for the LLM. See https://github.com/facebookresearch/codellama for more information
+max_batch_size = 4
+temperature = 0.2
+top_p = 0.95
+frequency_penalty = 0
+presence_penalty = 0
 
 [openai]
 api_keys = [sk-xxx] # The OpenAI api keys, you can get them from https://platform.openai.com/account/api-keys
 model = gpt-3.5-turbo # gpt-3.5-turbo or gpt-4
 temperature = 0.5 # See https://platform.openai.com/docs/api-reference/chat/create
-top_p = 1
+top_p = 0.95
 frequency_penalty = 0
 presence_penalty = 0
 
@@ -188,25 +196,6 @@ The nested structure of the result directory is as follows:
 ### src
 This is the directory that stores the source code.
 
-## MISC
-
-TODO
-
-Our work has been submitted to arXiv. Check it out here: [ChatUniTest](https://arxiv.org/abs/2305.04764).
-
-```
-@misc{xie2023chatunitest,
-      title={ChatUniTest: a ChatGPT-based automated unit test generation tool}, 
-      author={Zhuokui Xie and Yinghao Chen and Chen Zhi and Shuiguang Deng and Jianwei Yin},
-      year={2023},
-      eprint={2305.04764},
-      archivePrefix={arXiv},
-      primaryClass={cs.SE}
-}
-```
-
 ## License
-
-TODO
 
 The project is licensed under the [MIT License](https://opensource.org/licenses/MIT).

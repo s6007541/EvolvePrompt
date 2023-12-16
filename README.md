@@ -28,7 +28,7 @@ Follow the instructions below to install the project:
 3. Install the requirements: `pip install -r requirements.txt`
 
 ### Step 2: Download the LLM
-We use CodeLlama-7b-Instruct for unit test generation in this project. Follow the instruction given in [the offical CodeLlama repository](https://github.com/facebookresearch/codellama?tab=readme-ov-file#download) to download it.
+We use **CodeLlama-7b-Instruct** for unit test generation in this project. Follow the instruction given in [the offical CodeLlama repository](https://github.com/facebookresearch/codellama?tab=readme-ov-file#download) to download it.
 
 ### Step 3: Configuration
 
@@ -46,7 +46,7 @@ The options are explained as follows:
 
 ```ini
 [DEFAULT]
-test_number = 3 #The number of attempts to generate for each focal method.
+test_number = 3 # The number of attempts to generate for each focal method.
 process_number = 32 # The number of processes to use when generating tests.
 dataset_dir = ../dataset/ # Dataset directory, no need to change.
 result_dir = ../result/ # Result directory, no need to change.
@@ -70,7 +70,7 @@ JACOCO_CLI = ./dependencies/jacoco/jacococli.jar
 REPORT_FORMAT = xml # The coverage report format.
 
 [llm]
-model_path = path/to/model # The path to the LLM (CodeLlama-7b-Instruct) you donwloaded
+model_path = path/to/model # The path to the LLM (CodeLlama-7b-Instruct) that you downloaded
 tokenizer_path = path/to/tokenizer # The path to the tokenizer of the LLM
 max_seq_len = 2048 # Parameters for the LLM. See https://github.com/facebookresearch/codellama for more information
 max_batch_size = 4
@@ -119,26 +119,26 @@ GRAMMAR_FILE = path/to/java-grammar.so
 
 #### EvolveUniTest (Our Project)
 
-First, run the prompt evolution script with the following steps.
+First, run the prompt evolution part with the following steps.
 
 1. Rename `.config/config_evoprompt.ini` to `.config/config.ini`
 2. Enter the source code directory: `cd src`
 3. On one terminal, launch a flask server that hosts the LLM: `torchrun server.py`
 4. On another terminal, run the Python script for prompt evolution: `python evoprompt.py`
 
-Then, wait for the process to finish. The results, including the best prompt and all prompts in each generation of the genetic algorithm, are saved in `prompt/evoprompt`. Next, follow the steps below to run unit test generation.
+Then, wait for the process to finish. The results, including the best prompt and all prompts in each generation of the prompt evolution process, are saved in `prompt/evoprompt`. Next, follow the steps below to run unit test generation.
 
 1. Copy the prompt from `prompt/evoprompt/generation_<NUM_GENERATIONS>` to `prompt/d1_4_system.jinja2` and `prompt/d3_4_system.jinja2`. Note that `<NUM_GENERATIONS>` is the number of generations in the prompt evolution task (default: 5). Backup the original `prompt/d1_4_system.jinja2` and `prompt/d3_4_system.jinja2` files.
 2. Rename `.config/config_chatunitest.ini` to `.config/config.ini`
 3. Enter the source code directory: `cd src`
-4. On one terminal, launch a flask server that hosts the LLM: `torchrun server.py`
+4. On one terminal, launch a flask server that hosts the LLM: `torchrun server.py` (not necessary if it is already running). 
 5. On another terminal, run the Python script for unit test generation: `python run.py`
 
 Wait until the process finishes. The result is saved in the `result` directory.
 
 #### ChatUniTest Baseline
 
-To run the ChatUniTest baseline with CodeLlama-7b-Instruct, ignore [Prompt Evolution](#prompt-evolution) and follow the steps below.
+To run the ChatUniTest baseline with CodeLlama-7b-Instruct, follow the steps below.
 
 1. If you run [EvolveUniTest](#evolveunitest-our-project) before, restore the original `prompt/d1_4_system.jinja2` and `prompt/d3_4_system.jinja2` files.
 2. Rename `.config/config_chatunitest.ini` to `.config/config.ini`
@@ -152,7 +152,7 @@ To run the ChatUniTest baseline with CodeLlama-7b-Instruct, ignore [Prompt Evolu
 
 This directory stores the config files.
 
-The `config_evoprompt.ini` and `config_chatunitest.ini` are for the prompt evolution task and the unit test generation task. Be sure to copy the corresponding file and rename it to `config.ini` when running each task.
+The `config_evoprompt.ini` and `config_chatunitest.ini` are for the prompt evolution task and the unit test generation task, respectively. Be sure to copy the corresponding file and rename it to `config.ini` when running each task.
 
 ### dataset
 
@@ -188,7 +188,7 @@ The nested structure of the result directory is as follows:
 2. method_id + % + class_name + %d1
 3. A number that denotes the different attempt, which contains all the files generated during the process, including:
 
-    1. steps_GPT_rounds.json: Raw response from OpenAI.
+    1. steps_GPT_rounds.json: Raw response from the LLM.
     2. steps_raw_rounds.json: The raw test extracted from the raw response, and the result of the validation process.
     3. steps_imports_rounds.json: The test after import repairs, and the result of the validation process.
     4. temp: Contains the latest error message or coverage result and a test java file.

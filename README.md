@@ -1,4 +1,4 @@
-# Evolving Prompt with Genetic Algorithm Yields Powerful Instruction for Unit Test Generation
+# EvolveUniTest : Evolving Prompt with Genetic Algorithm Yields Powerful Instruction for Unit Test Generation
 
 > A final project of CS454 AI Based Software Engineering, KAIST (Fall 2023)
 > 

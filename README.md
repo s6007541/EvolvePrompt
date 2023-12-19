@@ -4,7 +4,9 @@
 > 
 > Contributors: Pawit Wangsuekul, Hai-Nam V. Cao, Sorn Chottananurak, Thanh-Long V. Le (Team 7)
 
-Built on top of https://github.com/ZJU-ACES-ISE/ChatUniTest
+Built on top of [ChatUniTest](https://github.com/ZJU-ACES-ISE/ChatUniTest)
+
+For more detail, read our paper [here](https://drive.google.com/file/d/1JqugwHpppsBOw07miVAHdGrMNVGJFTqn/view?usp=sharing)
 
 ![Alt Text](demo.gif)
 

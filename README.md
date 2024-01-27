@@ -6,7 +6,8 @@
 
 Built on top of [ChatUniTest](https://github.com/ZJU-ACES-ISE/ChatUniTest)
 
-For more detail, read our paper [here](https://drive.google.com/file/d/1JqugwHpppsBOw07miVAHdGrMNVGJFTqn/view?usp=sharing)
+[[`Slides`](https://docs.google.com/presentation/d/1RMA-35Qafz4ZkoMB837EVmLxZn1hSpCe7plRxkqejRw/edit?usp=sharing)]
+[[`Paper`](https://github.com/s6007541/EvolveUniTest/blob/main/pdf_files/EvolveUniTest.pdf)] 
 
 ![Alt Text](demo.gif)
 

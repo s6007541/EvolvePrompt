@@ -1,13 +1,11 @@
 # EvolveUniTest : Evolving Prompt with Genetic Algorithm Yields Powerful Instruction for Unit Test Generation
-
-> A final project of CS454 AI Based Software Engineering, KAIST (Fall 2023)
-> 
-> Contributors: Pawit Wangsuekul, Hai-Nam V. Cao, Sorn Chottananurak, Thanh-Long V. Le (Team 7)
-
-Built on top of [ChatUniTest](https://github.com/ZJU-ACES-ISE/ChatUniTest)
-
 [[`Slides`](https://docs.google.com/presentation/d/1RMA-35Qafz4ZkoMB837EVmLxZn1hSpCe7plRxkqejRw/edit?usp=sharing)]
 [[`Paper`](https://github.com/s6007541/EvolveUniTest/blob/main/pdf_files/EvolveUniTest.pdf)] 
+
+> Contributors: Pawit Wangsuekul, Sorn Chottananurak, Hai-Nam V. Cao, Thanh-Long V. Le
+
+
+Built on top of [ChatUniTest](https://github.com/ZJU-ACES-ISE/ChatUniTest)
 
 ![Alt Text](demo.gif)
 

@@ -14,7 +14,7 @@ Built on top of [ChatUniTest](https://github.com/ZJU-ACES-ISE/ChatUniTest)
 Unit testing is a crucial aspect of software engineering, demanding considerable time and effort. To address this challenge, various automated test generation tools have been developed, such as ChatUniTest — a ChatGPT-based system developed under the Generation-Validation-Repair framework. Despite its utility, ChatUniTest's performance is hampered by the reliance on manually crafted system prompts to initiate the test generation process. Drawing inspiration from recent researches in prompt evolution, we introduce EvolveUniTest, an adaptation of ChatUniTest with EvolvePrompt, a framework employing genetic algorithms for prompt evolution. EvolvePrompt initiates from a population of system prompts, including those manually designed for ChatUniTest, iteratively generating new prompts using a large language model and enhancing the population based on a development set. Leveraging the most optimized prompt from this evolutionary process, EvolveUniTest surpasses ChatUniTest in the quality and performance of generated unit tests. It achieves higher correctness percentages, increased branch and line coverage, and improved focal method coverage.
 
 <p align="center">
-<img src="image/EvolveUniTest.png" height=350>
+<img src="image/EvolveUniTest.png" height=300>
 </p>
 
 <p align="center">
